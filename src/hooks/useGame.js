@@ -7,7 +7,7 @@ export function useGame() {
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
 
-    const initGame = useCallback(async (industry) => {
+    const initGame = useCallback(async (industry, mode = 'classic') => {
         setLoading(true);
         setError(null);
         setResult(null);
@@ -16,7 +16,7 @@ export function useGame() {
             const res = await fetch("/api/game/init", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ industry, mode: "infinite" }),
+                body: JSON.stringify({ industry, mode }),
             });
 
             const data = await res.json();
@@ -35,7 +35,7 @@ export function useGame() {
         }
     }, []);
 
-    const submitGuess = useCallback(async (guess) => {
+    const submitGuess = useCallback(async (guess, currentStage = 1, timeRemaining = null) => {
         if (!session?.sessionId) {
             throw new Error("No active session");
         }
@@ -49,7 +49,9 @@ export function useGame() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     sessionId: session.sessionId,
-                    guess
+                    guess,
+                    currentStage,
+                    timeRemaining,
                 }),
             });
 
@@ -62,21 +64,30 @@ export function useGame() {
             const guessResult = data.data;
             setResult(guessResult);
 
-            // Update session with new data
-            if (!guessResult.gameOver) {
+            if (guessResult.isCorrect && guessResult.nextMovie) {
+                // Correct! Update session with next movie and reset to Stage 1
                 setSession(prev => ({
                     ...prev,
-                    currentLevel: guessResult.currentLevel || prev.currentLevel,
-                    attempts: (prev.attempts || 0) + 1,
-                    hint: guessResult.nextHint || prev.hint,
+                    currentRound: guessResult.currentRound,
+                    currentStage: 1,  // Reset to Stage 1 for new movie
+                    streak: guessResult.streak,
+                    totalScore: guessResult.totalScore,
+                    hints: guessResult.nextMovie.hints,
+                    stageData: guessResult.nextMovie.stageData,
+                    allStages: guessResult.nextMovie.allStages,
+                    blurAmount: guessResult.nextMovie.blurAmount,
+                    timeLimit: guessResult.nextMovie.timeLimit,
+                    posterPath: guessResult.nextMovie.posterPath,
+                    backdropPath: guessResult.nextMovie.backdropPath,
                 }));
-            } else {
+            } else if (guessResult.gameOver) {
+                // Game Over
                 setSession(prev => ({
                     ...prev,
                     isGameOver: true,
-                    isWon: guessResult.isCorrect,
-                    score: guessResult.score,
-                    correctAnswer: guessResult.message?.match(/"([^"]+)"/)?.[1],
+                    finalScore: guessResult.finalScore,
+                    streak: guessResult.streak,
+                    correctAnswer: guessResult.correctAnswer,
                 }));
             }
 
@@ -89,10 +100,49 @@ export function useGame() {
         }
     }, [session]);
 
+    const endGame = useCallback(async (reason = 'lives') => {
+        if (!session?.sessionId) return;
+
+        try {
+            const res = await fetch("/api/game/guess", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: 'end',
+                    sessionId: session.sessionId,
+                    reason,
+                }),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setSession(prev => ({
+                    ...prev,
+                    isGameOver: true,
+                    finalScore: data.data.finalScore,
+                    streak: data.data.streak,
+                    correctAnswer: data.data.correctAnswer,
+                }));
+            }
+            return data.data;
+        } catch (err) {
+            console.error('End game error:', err);
+        }
+    }, [session]);
+
     const resetGame = useCallback(() => {
         setSession(null);
         setResult(null);
         setError(null);
+    }, []);
+
+    // Helper to lose a life in rapid fire mode
+    const loseLife = useCallback(() => {
+        setSession(prev => {
+            if (!prev || prev.mode !== 'rapidfire') return prev;
+            const newLives = (prev.lives || 3) - 1;
+            return { ...prev, lives: newLives };
+        });
     }, []);
 
     return {
@@ -102,6 +152,8 @@ export function useGame() {
         result,
         initGame,
         submitGuess,
+        endGame,
         resetGame,
+        loseLife,
     };
 }

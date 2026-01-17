@@ -2,12 +2,8 @@ import prisma from '@/lib/prisma'
 import { getMovieDetails, discoverMovies } from '@/lib/tmdb'
 import { geminiModel, generateHintsPrompt } from '@/lib/gemini'
 
-/**
- * The Hydration Service: Fetch movies from TMDB and generate AI hints
- * This ensures we never call Gemini API during gameplay (cost optimization)
- */
 
-// Check if movie exists in our database
+
 export async function movieExists(tmdbId) {
     const movie = await prisma.movie.findUnique({
         where: { tmdbId },
@@ -15,14 +11,12 @@ export async function movieExists(tmdbId) {
     return !!movie
 }
 
-// Generate AI hints using Gemini
 async function generateHints(movieTitle, releaseYear, industry) {
     try {
         const prompt = generateHintsPrompt(movieTitle, releaseYear, industry)
         const result = await geminiModel.generateContent(prompt)
         const response = result.response.text()
 
-        // Clean the response (remove markdown code blocks if present)
         const cleanedResponse = response
             .replace(/```json\n?/g, '')
             .replace(/```\n?/g, '')
@@ -30,7 +24,7 @@ async function generateHints(movieTitle, releaseYear, industry) {
 
         const hints = JSON.parse(cleanedResponse)
 
-        // Validate the structure
+       
         if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
             throw new Error('Invalid hint structure from Gemini')
         }
@@ -39,7 +33,7 @@ async function generateHints(movieTitle, releaseYear, industry) {
     } catch (error) {
         console.error('Gemini hint generation failed:', error)
 
-        // Fallback to generic hints
+    
         return {
             dialogue: `A memorable quote from this ${releaseYear} film`,
             emoji: '🎬🎭🎪',

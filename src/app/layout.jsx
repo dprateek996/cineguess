@@ -1,15 +1,4 @@
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-    variable: "--font-inter",
-    subsets: ["latin"],
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-    variable: "--font-plus-jakarta",
-    subsets: ["latin"],
-});
 
 export const metadata = {
     title: "CineGuess - Movie Guessing Game",
@@ -25,7 +14,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en" className="dark">
-            <body className={`${inter.variable} ${plusJakarta.variable} antialiased`}>
+            <head>
+                {/* Fontshare - Clash Display (Headlines) & Satoshi (Body) */}
+                <link
+                    href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700&display=swap"
+                    rel="stylesheet"
+                />
+            </head>
+            <body className="antialiased">
                 {children}
             </body>
         </html>
