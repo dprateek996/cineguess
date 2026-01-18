@@ -108,6 +108,53 @@ function GameLanding() {
                     </div>
                 </motion.div>
 
+                {/* Daily Challenge Card */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="w-full max-w-sm mb-10"
+                >
+                    <Link
+                        href="/daily"
+                        className="group relative flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 hover:border-amber-400/50 hover:from-amber-500/15 hover:to-orange-500/15 transition-all duration-200"
+                        style={{
+                            boxShadow: "0 2px 15px rgba(251, 191, 36, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
+                        }}
+                    >
+                        {/* Pulse effect */}
+                        <motion.div
+                            animate={{
+                                scale: [1, 1.05, 1],
+                                opacity: [0.3, 0.5, 0.3],
+                            }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                            }}
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10"
+                        />
+
+                        <div className="relative flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                <span className="text-xl">📅</span>
+                            </div>
+                            <div>
+                                <span className="block text-amber-200 font-medium text-[15px]">
+                                    Daily Challenge
+                                </span>
+                                <span className="block text-amber-400/60 text-xs">
+                                    New movie every day!
+                                </span>
+                            </div>
+                        </div>
+                        <span className="relative text-amber-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all">
+                            →
+                        </span>
+                    </Link>
+                </motion.div>
+
                 {/* How to play pill */}
                 <motion.div
                     initial={{ opacity: 0 }}

@@ -3,18 +3,16 @@ import { useEffect, useState, use, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/hooks/useGame";
 import { useSound } from "@/hooks/useSound";
-import { AnimatedGradient } from "@/components/ui/animated-gradient";
 import GameIntro from "@/components/ui/game-intro";
 import HandleModal from "@/components/ui/handle-modal";
 import SceneImage from "@/components/ui/scene-image";
 import TypewriterDialogue from "@/components/ui/typewriter-dialogue";
-import EmojiClue from "@/components/ui/emoji-clue";
+import TriviaCard from "@/components/ui/trivia-card";
 import StageTransition from "@/components/ui/stage-transition";
-import StageIndicator from "@/components/ui/stage-indicator";
-import SoundToggle from "@/components/ui/sound-toggle";
+import MinimalHUD from "@/components/ui/minimal-hud";
+import SlimFilmStrip from "@/components/ui/slim-film-strip";
 import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
-import ScoreCounter from "@/components/ui/score-counter";
 import Link from "next/link";
 
 const industryConfig = {
@@ -48,8 +46,16 @@ const industryConfig = {
     },
 };
 
+const categoryColors = {
+    BOLLYWOOD: "#f97316",
+    HOLLYWOOD: "#3b82f6",
+    ANIME: "#a855f7",
+    GLOBAL: "#10b981",
+};
+
 export default function PlayPage({ params }) {
-    const { industry } = use(params);
+    const { industry: rawIndustry } = use(params);
+    const industry = rawIndustry?.toUpperCase() || "HOLLYWOOD";
     const { session, loading, error, result, initGame, submitGuess, endGame, resetGame, loseLife } = useGame();
     const { isMuted, toggleMute, playCorrect, playWrong, playTransition, playStart, playGameOver } = useSound();
     const [guess, setGuess] = useState("");
@@ -263,10 +269,11 @@ export default function PlayPage({ params }) {
                         typingSpeed={40}
                     />
                 );
-            case 'emoji':
+            case 'trivia':
                 return (
-                    <EmojiClue
-                        emojis={stageInfo.data.emojis}
+                    <TriviaCard
+                        trivia={stageInfo.data.trivia}
+                        industry={industry}
                     />
                 );
             case 'poster':
@@ -311,7 +318,13 @@ export default function PlayPage({ params }) {
     // Mode selection
     if (showModeSelect) {
         return (
-            <AnimatedGradient className="min-h-screen flex items-center justify-center px-4">
+            <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0a] relative overflow-hidden">
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                    }}
+                />
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -356,61 +369,85 @@ export default function PlayPage({ params }) {
                         ← Back to Menu
                     </Link>
                 </motion.div>
-            </AnimatedGradient>
+            </div>
         );
     }
 
     // Handle modal
     if (showHandleModal) {
         return (
-            <AnimatedGradient className="min-h-screen">
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                    }}
+                />
                 <HandleModal isOpen={true} onSubmit={handleHandleSubmit} />
-            </AnimatedGradient>
+            </div>
         );
     }
 
     // Loading state
     if (loading && !session) {
         return (
-            <AnimatedGradient className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                    }}
+                />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center"
+                    className="text-center relative z-10"
                 >
                     <div className="text-5xl mb-4 animate-bounce">{config.icon}</div>
                     <p className="text-neutral-400">Loading {config.name} challenge...</p>
                 </motion.div>
-            </AnimatedGradient>
+            </div>
         );
     }
 
     // Error state
     if (error && !session) {
         return (
-            <AnimatedGradient className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                    }}
+                />
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center glass rounded-2xl p-8 max-w-md"
+                    className="text-center glass rounded-2xl p-8 max-w-md relative z-10"
                 >
                     <div className="text-5xl mb-4">😢</div>
                     <h2 className="text-xl font-bold text-white mb-2">Oops!</h2>
                     <p className="text-neutral-400 mb-6">{error}</p>
                     <Link href="/" className="btn-primary">Go Back</Link>
                 </motion.div>
-            </AnimatedGradient>
+            </div>
         );
     }
 
     // Game Over Screen
     if (session?.isGameOver) {
         return (
-            <AnimatedGradient className="min-h-screen flex items-center justify-center px-4">
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                    }}
+                />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center glass rounded-3xl p-10 max-w-lg w-full"
+                    className="text-center glass rounded-3xl p-10 max-w-lg w-full relative z-10"
                     style={{ boxShadow: `0 0 100px ${config.glow}` }}
                 >
                     <motion.div
@@ -482,171 +519,160 @@ export default function PlayPage({ params }) {
                         />
                     )}
                 </AnimatePresence>
-            </AnimatedGradient>
+            </div>
         );
     }
 
-    // Main Game Screen
+    // Main Game Screen - Cinematic Spotlights Layout
     return (
-        <AnimatedGradient className="min-h-screen">
-            <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between mb-6"
-                >
-                    <div className="flex items-center gap-3">
-                        <Link href="/" className="text-neutral-400 hover:text-white transition-colors">
-                            ← Exit
-                        </Link>
-                        <SoundToggle isMuted={isMuted} onToggle={toggleMute} />
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* Lives for Rapid Fire */}
-                        {session?.mode === 'rapidfire' && (
-                            <div className="flex gap-1">
-                                {[...Array(3)].map((_, i) => (
-                                    <motion.span
-                                        key={i}
-                                        animate={i === lives - 1 && lives < 3 ? { scale: [1, 1.3, 1] } : {}}
-                                        className={`text-xl ${i < lives ? 'opacity-100' : 'opacity-30'}`}
-                                    >
-                                        ❤️
-                                    </motion.span>
-                                ))}
-                            </div>
-                        )}
-                        {/* Animated Score Counter */}
-                        <ScoreCounter score={session?.totalScore || 0} />
-                    </div>
-                </motion.div>
+        <div className="h-screen flex flex-col overflow-hidden bg-[#0a0a0a] relative selection:bg-white/10">
+            {/* Spotlight Gradient - Matches Landing Page */}
+            <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
+                }}
+            />
 
-                {/* Round & Mode Info */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-center mb-6"
-                >
-                    <p className="text-neutral-500 text-sm uppercase tracking-wider">
-                        {session?.mode === 'rapidfire' ? '⚡ Rapid Fire' : '🎯 Classic'} • Round {session?.currentRound || 1}
-                    </p>
-                    {(session?.streak || 0) > 0 && (
-                        <p className="text-orange-400 text-sm">🔥 {session.streak} movie streak!</p>
-                    )}
-                </motion.div>
+            {/* Ambient Industry Tint - Very subtle at bottom */}
+            <div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                    background: `linear-gradient(to top, ${config.glow} 0%, transparent 30%)`,
+                }}
+            />
 
-                {/* Timer for Rapid Fire */}
-                {session?.mode === 'rapidfire' && timeLeft !== null && (
+            {/* Minimal HUD - Top */}
+            <MinimalHUD
+                mode={session?.mode || 'classic'}
+                round={session?.currentRound || 1}
+                score={session?.totalScore || 0}
+                lives={lives}
+                timeLeft={session?.mode === 'rapidfire' ? timeLeft : null}
+                maxTime={session?.timeLimit || 30}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                industry={industry}
+                streak={session?.streak || 0}
+            />
+
+            {/* Correct Animation Overlay */}
+            <AnimatePresence>
+                {showCorrectAnimation && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center mb-6"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
                     >
-                        <div className={`inline-flex items-center gap-2 px-6 py-3 rounded-full ${timeLeft <= 10 ? 'bg-red-500/20' : 'glass'}`}>
-                            <span className={`text-3xl font-bold ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
-                                {timeLeft}s
-                            </span>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Correct Animation Overlay */}
-                <AnimatePresence>
-                    {showCorrectAnimation && (
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                            initial={{ scale: 0.9, y: 10 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="text-center"
                         >
                             <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                                className="text-center"
+                                initial={{ rotate: -10, scale: 0 }}
+                                animate={{ rotate: 0, scale: 1 }}
+                                transition={{ type: "spring", damping: 12 }}
+                                className="text-8xl mb-6 relative z-10 drop-shadow-2xl"
                             >
-                                <div className="text-8xl mb-4">🎉</div>
-                                <p className="text-3xl font-bold text-white">Correct!</p>
-                                <p className="text-neutral-300">+{result?.roundScore || 0} points</p>
-                                {guessedAtStage === 1 && (
-                                    <p className="text-amber-400 text-sm mt-2">🏆 First try bonus!</p>
-                                )}
+                                🎉
                             </motion.div>
+                            <p className="text-3xl font-bold text-white tracking-tight mb-2">That's right!</p>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-sm">
+                                <span>+{result?.roundScore || 0} points</span>
+                                {guessedAtStage === 1 && <span className="text-amber-400">★ Perfect</span>}
+                            </div>
                         </motion.div>
-                    )}
-                </AnimatePresence>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col justify-center items-center px-6 relative z-10 w-full max-w-7xl mx-auto">
                 {/* Stage Content with Transition */}
                 <StageTransition stage={currentStage}>
-                    <div className="mb-6">
-                        {getStageContent()}
+                    <div className="w-full max-w-5xl mx-auto">
+                        <div className="relative group">
+                            {/* Content Frame */}
+                            {getStageContent()}
+                        </div>
                     </div>
                 </StageTransition>
 
-                {/* Stage Indicator */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mb-6"
-                >
-                    <StageIndicator
-                        currentStage={currentStage}
-                        totalStages={4}
-                    />
-                </motion.div>
-
-                {/* Result Feedback */}
+                {/* Result Feedback - Floating pill */}
                 <AnimatePresence>
                     {result && !result.isCorrect && !result.gameOver && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className={`text-center mb-4 p-3 rounded-lg ${result.status === "NEAR_MISS"
-                                ? "bg-yellow-500/20 text-yellow-400"
-                                : "bg-red-500/20 text-red-400"
-                                }`}
+                            className={`
+                                absolute bottom-24 left-1/2 -translate-x-1/2 z-30
+                                px-6 py-3 rounded-xl text-sm font-medium backdrop-blur-md shadow-2xl
+                                flex items-center gap-2
+                                ${result.status === "NEAR_MISS"
+                                    ? "bg-amber-950/40 text-amber-200 border border-amber-500/20"
+                                    : "bg-red-950/40 text-red-200 border border-red-500/20"
+                                }
+                            `}
                         >
+                            <span className="text-lg">{result.status === "NEAR_MISS" ? "🤏" : "❌"}</span>
                             {result.message}
-                            {currentStage < 4 && (
-                                <span className="block text-sm mt-1 text-neutral-400">
-                                    Advancing to next clue...
-                                </span>
-                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                {/* Guess Input with Autocomplete */}
-                <motion.form
-                    onSubmit={handleSubmit}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="flex flex-col sm:flex-row gap-3"
-                >
-                    <AutocompleteInput
-                        value={guess}
-                        onChange={(e) => setGuess(e.target.value)}
-                        onSubmit={handleSubmit}
-                        placeholder="Enter movie name..."
-                        industry={industry}
-                        disabled={loading || showCorrectAnimation}
-                        shakeOnError={shakeInput}
-                        className="flex-1"
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading || !guess.trim() || showCorrectAnimation}
-                        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? "..." : "Guess"}
-                    </button>
-                </motion.form>
             </div>
-        </AnimatedGradient>
+
+            {/* Bottom Controls - Unified Bar */}
+            <div className="relative z-20 px-6 pb-8 pt-4">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    {/* Slim Film Strip */}
+                    <SlimFilmStrip
+                        currentStage={currentStage}
+                        industry={industry}
+                        className="opacity-80 hover:opacity-100 transition-opacity"
+                    />
+
+                    {/* Guess Input - Matching Landing Page Input Style */}
+                    <motion.form
+                        onSubmit={handleSubmit}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="relative z-30"
+                    >
+                        <div className="flex gap-2 p-1.5 rounded-2xl bg-neutral-900/80 border border-neutral-800/80 shadow-2xl backdrop-blur-xl">
+                            <AutocompleteInput
+                                value={guess}
+                                onChange={(e) => setGuess(e.target.value)}
+                                onSubmit={handleSubmit}
+                                placeholder="Type movie title..."
+                                industry={industry}
+                                disabled={loading || showCorrectAnimation}
+                                shakeOnError={shakeInput}
+                                className="flex-1 bg-transparent border-none text-white placeholder:text-neutral-600 focus:ring-0 h-11 px-3"
+                            />
+                            <button
+                                type="submit"
+                                disabled={loading || !guess.trim() || showCorrectAnimation}
+                                className={`
+                                    px-6 h-11 rounded-xl font-medium text-sm text-white tracking-wide
+                                    transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+                                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
+                                    bg-gradient-to-r ${config.gradient}
+                                `}
+                                style={{
+                                    boxShadow: `0 0 15px ${config.glow}`,
+                                }}
+                            >
+                                {loading ? "..." : "Guess"}
+                            </button>
+                        </div>
+                    </motion.form>
+                </div>
+            </div>
+        </div>
     );
 }

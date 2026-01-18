@@ -24,6 +24,30 @@ function getDifficultyConfig(round, mode = 'classic') {
     return { blur: 60, maxHints: 1, timeLimit: null }
 }
 
+// Generate fallback trivia from TMDB movie data
+function generateFallbackTrivia(movie) {
+    const year = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : null;
+    const budget = movie.budget;
+    const revenue = movie.revenue;
+
+    // Try budget/revenue facts first
+    if (revenue && revenue > 100000000) {
+        const revenueInCrores = Math.round(revenue / 10000000);
+        return `This film earned over ₹${revenueInCrores} crores at the worldwide box office.`;
+    }
+
+    if (budget && budget > 50000000) {
+        const budgetInMillions = Math.round(budget / 1000000);
+        return `This film was made with a reported budget of $${budgetInMillions} million.`;
+    }
+
+    if (year) {
+        return `This ${year} release became a memorable entry in its genre.`;
+    }
+
+    return `This film features a critically acclaimed performance that left audiences speechless.`;
+}
+
 // Get stage-based clue data for current round
 // Stage 1: Scene (backdrop), Stage 2: Dialogue, Stage 3: Emoji, Stage 4: Blurred Poster
 function getStageData(movie, stage = 1) {
@@ -41,10 +65,10 @@ function getStageData(movie, stage = 1) {
             label: 'Famous Dialogue'
         },
         3: {
-            type: 'emoji',
-            data: { emojis: movie.hints?.level3Emoji || '🎬🎥🎞️' },
+            type: 'trivia',
+            data: { trivia: movie.hints?.level4Trivia || generateFallbackTrivia(movie) },
             pointsMultiplier: 2,
-            label: 'Plot in Emojis'
+            label: 'Movie Trivia'
         },
         4: {
             type: 'poster',

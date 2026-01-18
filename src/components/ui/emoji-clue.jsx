@@ -117,13 +117,19 @@ export default function EmojiClue({
                             animate={{
                                 y: [0, -5, 0],
                             }}
+                            whileHover={{
+                                scale: 1.3,
+                                rotate: [0, -10, 10, 0],
+                                transition: { duration: 0.3 }
+                            }}
+                            whileTap={{ scale: 0.9 }}
                             transition={{
                                 duration: 2,
                                 repeat: Infinity,
                                 delay: index * 0.2,
                                 ease: "easeInOut"
                             }}
-                            className="relative text-6xl md:text-7xl lg:text-8xl select-none drop-shadow-2xl"
+                            className="relative text-6xl md:text-7xl lg:text-8xl select-none drop-shadow-2xl cursor-pointer"
                             style={{
                                 textShadow: '0 0 30px rgba(251, 191, 36, 0.3)'
                             }}

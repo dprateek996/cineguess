@@ -51,7 +51,7 @@ export default function TypewriterDialogue({
                 setDisplayedText(dialogue.slice(0, charIndexRef.current + 1));
                 charIndexRef.current++;
 
-                
+
                 const char = dialogue[charIndexRef.current - 1];
                 const delay = ['.', '!', '?', ','].includes(char)
                     ? typingSpeed * 4
@@ -59,7 +59,7 @@ export default function TypewriterDialogue({
 
                 timeoutRef.current = setTimeout(typeNextChar, delay);
             } else {
-                
+
                 setIsTyping(false);
                 setTimeout(() => {
                     setShowCursor(false);
@@ -130,7 +130,15 @@ export default function TypewriterDialogue({
                         </span>
                     )}
 
-                    <p className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-relaxed tracking-wide font-serif italic">
+                    <motion.p
+                        className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-relaxed tracking-wide font-serif italic"
+                        animate={{
+                            textShadow: displayedText.length === dialogue?.length
+                                ? "0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.2)"
+                                : "none"
+                        }}
+                        transition={{ duration: 0.5 }}
+                    >
                         {displayedText}
                         <AnimatePresence>
                             {(isTyping || showCursor) && (
@@ -141,7 +149,7 @@ export default function TypewriterDialogue({
                                 />
                             )}
                         </AnimatePresence>
-                    </p>
+                    </motion.p>
 
                     {showQuotes && displayedText.length > 0 && (
                         <motion.span
