@@ -49,6 +49,11 @@ export async function getMovieDetails(movieId) {
     return fetchFromTMDB(TMDB_ENDPOINTS.MOVIE_DETAILS(movieId))
 }
 
+// Get movie images
+export async function getMovieImages(movieId) {
+    return fetchFromTMDB(`${BASE_URL}/movie/${movieId}/images`)
+}
+
 // Discover movies by criteria
 export async function discoverMovies(filters = {}) {
     const params = {

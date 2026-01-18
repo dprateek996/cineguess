@@ -23,6 +23,58 @@ export async function GET(request) {
             },
         })
 
+        // If no daily game exists and industry is provided, create one seamlessly
+        if (!dailyGame && industry) {
+            console.log(`No daily game for ${industry} on ${today.toISOString()}. Creating one...`);
+
+            // Count movies in this industry
+            const count = await prisma.movie.count({
+                where: { industry: industry }
+            });
+
+            if (count > 0) {
+                // Pick a random movie
+                const skip = Math.floor(Math.random() * count);
+                const movie = await prisma.movie.findFirst({
+                    where: { industry: industry },
+                    skip: skip,
+                    include: { hints: true }
+                });
+
+                if (movie) {
+                    try {
+                        dailyGame = await prisma.dailyGame.create({
+                            data: {
+                                date: today,
+                                industry: industry,
+                                movieId: movie.id,
+                            },
+                            include: {
+                                movie: {
+                                    include: {
+                                        hints: true
+                                    }
+                                }
+                            }
+                        });
+                        console.log(`Created daily game: ${movie.title}`);
+                    } catch (createError) {
+                        // Handle race condition where another request created it
+                        console.error("Daily game creation race:", createError);
+                        dailyGame = await prisma.dailyGame.findFirst({
+                            where: {
+                                date: today,
+                                industry: industry,
+                            },
+                            include: {
+                                movie: { include: { hints: true } }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
         if (!dailyGame) {
             return NextResponse.json({
                 success: false,
@@ -39,6 +91,7 @@ export async function GET(request) {
                 movieId: dailyGame.movieId,
                 totalAttempts: dailyGame.totalAttempts,
                 totalWins: dailyGame.totalWins,
+                movie: dailyGame.movie, // Include movie data for frontend
             },
         })
     } catch (error) {

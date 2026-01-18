@@ -61,7 +61,7 @@ export const INDUSTRY_CONFIG = {
     HOLLYWOOD: {
         name: 'Hollywood',
         description: 'Guess iconic movies from Hollywood',
-        gradient: 'from-blue-600 to-purple-600',
+        gradient: 'from-blue-600 to-cyan-500',
         icon: '🎬',
     },
     BOLLYWOOD: {

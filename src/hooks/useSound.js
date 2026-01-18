@@ -15,10 +15,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SOUNDS = {
     // Success sound - short cheerful chime
     correct: "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3",
-    // Wrong sound - subtle error
-    wrong: "https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3",
+    // Wrong sound - removed per user request
+    wrong: "",
     // Stage transition - whoosh
-    transition: "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+    // Stage transition - removed wind sound
+    transition: "",
     // Typewriter key
     typewriter: "https://assets.mixkit.co/active_storage/sfx/2360/2360-preview.mp3",
     // Timer tick

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Database Seed Script
- * Run this to populate your database with movies and AI-generated hints
+ * Advanced Database Seed Script
+ * - Curated Lists (Top 25, Cult Classics, TV Shows)
+ * - Discovery Mode with Randomness
+ * - Support for TV Shows (mapped to Movie schema with negative IDs)
  * 
  * Usage:
- *   node scripts/seed.mjs
- *   node scripts/seed.mjs --industry=BOLLYWOOD --count=10
- *   node scripts/seed.mjs --all --count=15
+ *   node scripts/seed.mjs --all --count=20
  */
 
 import 'dotenv/config'
@@ -16,266 +16,233 @@ import pg from 'pg'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Create Prisma client with pg adapter
-const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
-})
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
-// TMDB API setup
-const TMDB_API_KEY = process.env.TMDB_API_KEY || ''
+// Setup
+const TMDB_API_KEY = process.env.TMDB_API_KEY
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
-
-// Gemini AI setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const geminiModel = process.env.GEMINI_API_KEY
-    ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
-    : null
+const geminiModel = process.env.GEMINI_API_KEY ? genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }) : null
 
-// Generate hints prompt
-const generateHintsPrompt = (movieTitle, releaseYear, industry) => {
-    return `You are a movie hint generator for a guessing game called CineGuess.
-  
-Generate exactly 4 hints for the movie "${movieTitle}" (${releaseYear}) from ${industry} cinema.
-
-STRICT RULES:
-1. DO NOT mention the movie title or any main character names
-2. Each hint should progressively make it easier to guess
-3. Return ONLY valid JSON, no markdown or extra text
-
-Return in this EXACT JSON format:
-{
-  "dialogue": "A famous quote from the movie (without character name)",
-  "emoji": "3-4 emojis that represent the plot",
-  "trivia": "An obscure fact about production/filming",
-  "location": "A key filming location or setting in the movie"
+// Curated Lists
+const CURATED_LISTS = {
+    HOLLYWOOD: {
+        movies: [
+            "Interstellar", "Inception", "The Dark Knight", "Avengers: Endgame",
+            "Pulp Fiction", "Fight Club", "The Matrix", "Goodfellas",
+            "The Shawshank Redemption", "Forrest Gump", "Titanic", "Avatar",
+            "The Godfather", "Joker", "Spider-Man: No Way Home",
+            "Top Gun: Maverick", "Barbie", "Oppenheimer", "The Truman Show",
+            "Blade Runner 2049", "The Wolf of Wall Street", "Se7en", "Gladiator",
+            "The Silence of the Lambs", "Parasite"
+        ],
+        shows: [
+            "Breaking Bad", "Game of Thrones", "Stranger Things", "Succession",
+            "The Bear", "The Boys", "The Office", "Friends", "Black Mirror",
+            "The Mandalorian", "Chernobyl", "Better Call Saul", "True Detective"
+        ]
+    },
+    BOLLYWOOD: {
+        movies: [
+            "3 Idiots", "Dangal", "Sholay", "Dilwale Dulhania Le Jayenge",
+            "Lagaan", "Gangs of Wasseypur", "Zindagi Na Milegi Dobara",
+            "Queen", "Andhadhun", "Drishyam", "PK", "Bajrangi Bhaijaan",
+            "RRR", "Baahubali: The Beginning", "Swades", "Chak De! India",
+            "Rang De Basanti", "Barfi!", "Article 15", "Tumbbad"
+        ],
+        shows: [
+            "Sacred Games", "Mirzapur", "The Family Man", "Panchayat",
+            "Scam 1992", "Made in Heaven", "Kota Factory", "Paatal Lok",
+            "Farzi", "Rocket Boys"
+        ]
+    },
+    ANIME: {
+        movies: [
+            "Spirited Away", "Your Name", "A Silent Voice", "Princess Mononoke",
+            "Akira", "Grave of the Fireflies", "Howl's Moving Castle",
+            "The Boy and the Heron", "Suzume", "Demon Slayer: Mugen Train"
+        ],
+        shows: [
+            "Attack on Titan", "Death Note", "Fullmetal Alchemist: Brotherhood",
+            "One Piece", "Naruto", "Dragon Ball Z", "Cowboy Bebop",
+            "Neon Genesis Evangelion", "Demon Slayer", "Jujutsu Kaisen",
+            "Chainsaw Man", "Cyberpunk: Edgerunners", "Vinland Saga",
+            "Hunter x Hunter", "Steins;Gate"
+        ]
+    }
 }
 
-Now generate hints for "${movieTitle}" (${releaseYear}):
-`
-}
-
-// Fetch from TMDB
+// Fetch helper
 async function fetchFromTMDB(endpoint, params = {}) {
     const url = new URL(endpoint)
-    Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value)
-    })
-
+    Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value))
     const response = await fetch(url.toString(), {
-        headers: {
-            'Authorization': `Bearer ${TMDB_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${TMDB_API_KEY}`, 'Content-Type': 'application/json' }
     })
-
-    if (!response.ok) {
-        throw new Error(`TMDB API error: ${response.status} ${response.statusText}`)
-    }
-
+    if (!response.ok) throw new Error(`TMDB API Error: ${response.status}`)
     return response.json()
 }
 
-// Discover movies by industry
-async function discoverMovies(industry, page = 1) {
-    const params = {
-        page: page.toString(),
-        'vote_count.gte': '500',
-        sort_by: 'popularity.desc',
-    }
+// Search TMDB
+async function searchTMDB(query, type = 'movie', industry = 'HOLLYWOOD') {
+    const endpoint = `${TMDB_BASE_URL}/search/${type}`
+    const params = { query, page: '1' }
 
-    if (industry === 'BOLLYWOOD') {
-        params.with_original_language = 'hi'
-    } else if (industry === 'HOLLYWOOD') {
-        params.with_original_language = 'en'
-        params.region = 'US'
-    } else if (industry === 'ANIME') {
-        params.with_original_language = 'ja'
-        params.with_genres = '16' // Animation genre
-    } else if (industry === 'GLOBAL') {
-        // Just get popular movies from any region
-        params.region = 'all'
-    }
-
-    const data = await fetchFromTMDB(`${TMDB_BASE_URL}/discover/movie`, params)
-    return data.results
+    // Add simple filters if possible (mostly post-filtering needed for regions)
+    const data = await fetchFromTMDB(endpoint, params)
+    return data.results?.[0] || null // Return best match
 }
 
-// Get movie details
-async function getMovieDetails(movieId) {
-    return fetchFromTMDB(`${TMDB_BASE_URL}/movie/${movieId}`)
-}
+// Generate Hints Prompt
+const generateHintsPrompt = (title, year, type) => `
+Generate 4 hints for the ${type} "${title}" (${year}).
+RULES:
+1. No title/character names in hints.
+2. Valid JSON only.
+FORMAT:
+{
+  "dialogue": "Famous quote (no names)",
+  "emoji": "3-4 plot emojis",
+  "trivia": "Interesting production fact",
+  "location": "Key setting/location"
+}`
 
-// Generate AI hints using Gemini
-async function generateHints(movieTitle, releaseYear, industry) {
+async function generateHints(title, year, type) {
+    if (!geminiModel) return getFallbackHints(title, year)
     try {
-        if (!geminiModel) {
-            console.log('    ⚠️  No Gemini API key - using fallback hints')
-            return getFallbackHints(movieTitle, releaseYear)
-        }
-
-        const prompt = generateHintsPrompt(movieTitle, releaseYear, industry)
-        const result = await geminiModel.generateContent(prompt)
-        const response = result.response.text()
-
-        // Clean the response
-        const cleanedResponse = response
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim()
-
-        const hints = JSON.parse(cleanedResponse)
-
-        if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
-            throw new Error('Invalid hint structure')
-        }
-
-        return hints
-    } catch (error) {
-        console.log(`    ⚠️  Gemini failed for "${movieTitle}": ${error.message}`)
-        return getFallbackHints(movieTitle, releaseYear)
+        const result = await geminiModel.generateContent(generateHintsPrompt(title, year, type))
+        const text = result.response.text().replace(/```json\n?|```/g, '').trim()
+        return JSON.parse(text)
+    } catch (e) {
+        console.log(`    ⚠️ AI Hint generation failed for ${title}, using fallback.`)
+        return getFallbackHints(title, year)
     }
 }
 
-// Fallback hints when Gemini is unavailable
-function getFallbackHints(movieTitle, releaseYear) {
+function getFallbackHints(title, year) {
     return {
-        dialogue: `A memorable line from this ${releaseYear} film`,
-        emoji: '🎬🎭🎪',
-        trivia: `This movie was released in ${releaseYear}`,
-        location: 'A significant location in the story',
+        dialogue: `A memorable moment from this ${year} classic.`,
+        emoji: '🎬🎭🍿',
+        trivia: `Released in ${year}, this title captivated audiences.`,
+        location: 'The main setting of the story.'
     }
 }
 
-// Hydrate a single movie
-async function hydrateMovie(tmdbId, industry) {
-    // Check if already exists
-    const existing = await prisma.movie.findUnique({
-        where: { tmdbId },
-    })
+// Hydrate (Save) to DB
+async function hydrate(item, type, industry) {
+    const tmdbId = type === 'tv' ? -item.id : item.id // Negative IDs for TV shows to avoid collision
+    const title = item.title || item.name
+    const releaseDate = item.release_date || item.first_air_date
+    const year = releaseDate ? new Date(releaseDate).getFullYear() : 0
+    const genres = [] // Simplified for now
 
+    // Check existence
+    const existing = await prisma.movie.findUnique({ where: { tmdbId } })
     if (existing) {
-        console.log(`  ⏭️  Already exists: ${existing.title}`)
-        return existing
+        // console.log(`  ⏭️  Skipping existing: ${title}`)
+        return
     }
 
-    // Fetch from TMDB
-    const tmdbMovie = await getMovieDetails(tmdbId)
-    const releaseYear = new Date(tmdbMovie.release_date).getFullYear()
+    // Get details for images
+    const details = await fetchFromTMDB(`${TMDB_BASE_URL}/${type}/${item.id}`)
+    const posterPath = details.poster_path
+    const backdropPath = details.backdrop_path
 
-    console.log(`  🎬 Generating hints for: ${tmdbMovie.title} (${releaseYear})`)
+    if (!posterPath || !backdropPath) return // Skip if no images
 
-    // Generate AI hints
-    const hints = await generateHints(tmdbMovie.title, releaseYear, industry)
+    console.log(`  ✨ Seeding [${type.toUpperCase()}] ${title}`)
 
-    // Store in database
-    const movie = await prisma.movie.create({
+    // Hints
+    const hints = await generateHints(title, year, type === 'tv' ? 'TV Show' : 'Movie')
+
+    // Save
+    await prisma.movie.create({
         data: {
-            tmdbId: tmdbMovie.id,
-            title: tmdbMovie.title,
-            releaseYear,
+            tmdbId,
+            title,
+            releaseYear: year,
             industry,
-            genres: tmdbMovie.genres?.map((g) => g.name) || [],
-            posterPath: tmdbMovie.poster_path || '',
-            backdropPath: tmdbMovie.backdrop_path || '',
+            genres,
+            posterPath,
+            backdropPath,
             hints: {
                 create: {
-                    level1Blur: 45,
+                    level1Blur: 60, // Higher blur as requested
                     level2Dialogue: hints.dialogue,
                     level3Emoji: hints.emoji,
                     level4Trivia: hints.trivia,
-                    aiMetadata: {
-                        location: hints.location,
-                        generatedAt: new Date().toISOString(),
-                    },
-                },
-            },
-        },
-        include: { hints: true },
+                    aiMetadata: { location: hints.location }
+                }
+            }
+        }
     })
-
-    console.log(`  ✅ Saved: ${movie.title}`)
-    return movie
 }
 
-// Main seed function
+// Main Logic
 async function seed() {
-    const args = process.argv.slice(2)
-
-    // Parse arguments
-    const industryArg = args.find(arg => arg.startsWith('--industry='))
-    const countArg = args.find(arg => arg.startsWith('--count='))
-    const allFlag = args.includes('--all')
-
-    const industries = allFlag
-        ? ['HOLLYWOOD', 'BOLLYWOOD', 'ANIME']
-        : [industryArg?.split('=')[1] || 'HOLLYWOOD']
-
-    const count = parseInt(countArg?.split('=')[1] || '15')
-
-    console.log('\n🎬 CineGuess Database Seeder')
-    console.log('═'.repeat(40))
-    console.log(`📊 Industries: ${industries.join(', ')}`)
-    console.log(`🎯 Movies per industry: ${count}`)
-    console.log(`🔑 TMDB API: ${TMDB_API_KEY ? '✅ Configured' : '❌ Missing'}`)
-    console.log(`🤖 Gemini AI: ${process.env.GEMINI_API_KEY ? '✅ Configured' : '⚠️ Missing (using fallback hints)'}`)
-    console.log('═'.repeat(40))
+    console.log(`\n🌱 Starting Advanced Cureted Seed...`)
 
     if (!TMDB_API_KEY) {
-        console.error('\n❌ TMDB_API_KEY is required!')
+        console.error("❌ TMDB_API_KEY missing in environment.")
         process.exit(1)
     }
 
-    let totalSeeded = 0
+    const industries = ['HOLLYWOOD', 'BOLLYWOOD', 'ANIME'] // Default to all for this curated run
 
     for (const industry of industries) {
-        console.log(`\n🎭 Seeding ${industry}...`)
+        console.log(`\n--- Processing ${industry} ---`)
+        const list = CURATED_LISTS[industry]
 
-        try {
-            const movies = await discoverMovies(industry, 1)
-            console.log(`  📥 Found ${movies.length} movies from TMDB`)
+        // 1. Seed Curated Movies
+        for (const title of list.movies) {
+            await new Promise(r => setTimeout(r, 1000)); // Rate limit
+            const movie = await searchTMDB(title, 'movie')
+            if (movie) await hydrate(movie, 'movie', industry)
+        }
 
-            for (let i = 0; i < Math.min(count, movies.length); i++) {
-                try {
-                    await hydrateMovie(movies[i].id, industry)
-                    totalSeeded++
+        // 2. Seed Curated Shows
+        for (const title of list.shows) {
+            await new Promise(r => setTimeout(r, 1000)); // Rate limit
+            const show = await searchTMDB(title, 'tv')
+            if (show) await hydrate(show, 'tv', industry)
+        }
 
-                    // Rate limiting: wait between API calls
-                    if (geminiModel) {
-                        await new Promise(resolve => setTimeout(resolve, 1500))
-                    } else {
-                        await new Promise(resolve => setTimeout(resolve, 500))
-                    }
-                } catch (error) {
-                    console.error(`  ❌ Failed: ${movies[i].title} - ${error.message}`)
-                }
-            }
-        } catch (error) {
-            console.error(`  ❌ Failed to fetch ${industry} movies: ${error.message}`)
+        // 3. Discover Random "Underrated/Cult" (High rated, random page)
+        // Movies
+        const randomPage = Math.floor(Math.random() * 5) + 1
+        let discoverParams = {
+            page: randomPage,
+            'vote_average.gte': '7.5', // Good quality
+            'vote_count.gte': '300',   // Some popularity but maybe not massive
+            sort_by: 'vote_average.desc'
+        }
+
+        if (industry === 'BOLLYWOOD') {
+            discoverParams.with_original_language = 'hi'
+        } else if (industry === 'HOLLYWOOD') {
+            discoverParams.with_original_language = 'en'
+        } else if (industry === 'ANIME') {
+            discoverParams.with_genres = '16'
+            discoverParams.with_original_language = 'ja'
+        }
+
+        await new Promise(r => setTimeout(r, 1000)); // Rate limit
+        const discovered = await fetchFromTMDB(`${TMDB_BASE_URL}/discover/movie`, discoverParams)
+        // Seed first 5 from discovery
+        for (const item of discovered.results.slice(0, 5)) {
+            await new Promise(r => setTimeout(r, 1000)); // Rate limit
+            await hydrate(item, 'movie', industry)
         }
     }
 
-    // Show final stats
-    const stats = await prisma.movie.groupBy({
-        by: ['industry'],
-        _count: { id: true },
-    })
-
-    console.log('\n' + '═'.repeat(40))
-    console.log('📊 Database Statistics:')
-    stats.forEach(stat => {
-        console.log(`  ${stat.industry}: ${stat._count.id} movies`)
-    })
-    console.log('═'.repeat(40))
-    console.log(`\n✅ Seeding complete! Added ${totalSeeded} movies.`)
-
-    await prisma.$disconnect()
-    await pool.end()
+    console.log("\n✅ Seeding Complete!")
 }
 
-seed().catch(async (e) => {
-    console.error('❌ Seed failed:', e)
-    await prisma.$disconnect()
-    await pool.end()
-    process.exit(1)
-})
+seed()
+    .catch(e => console.error(e))
+    .finally(async () => {
+        await prisma.$disconnect()
+        await pool.end()
+    })

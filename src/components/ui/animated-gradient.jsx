@@ -13,7 +13,7 @@ export function AnimatedGradient({ children, className }) {
             >
                 {/* Top left orb */}
                 <motion.div
-                    className="absolute -top-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-[100px]"
+                    className="absolute -top-40 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px]"
                     animate={{
                         x: [0, 30, 0],
                         y: [0, 20, 0],

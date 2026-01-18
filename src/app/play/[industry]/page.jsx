@@ -10,38 +10,45 @@ import TypewriterDialogue from "@/components/ui/typewriter-dialogue";
 import TriviaCard from "@/components/ui/trivia-card";
 import StageTransition from "@/components/ui/stage-transition";
 import MinimalHUD from "@/components/ui/minimal-hud";
-import SlimFilmStrip from "@/components/ui/slim-film-strip";
+import VerticalFilmStrip from "@/components/ui/vertical-film-strip";
 import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
+import {
+    Clapperboard, Film, Sparkles, Globe, Frown, Target, Zap,
+    Image as ImageIcon, PartyPopper, Star, XCircle, Trophy
+} from "lucide-react";
+
+import { CinematicBackground } from "@/components/ui/cinematic-background";
 import Link from "next/link";
+
 
 const industryConfig = {
     BOLLYWOOD: {
         name: "Bollywood",
         gradient: "from-orange-500 to-yellow-500",
         glow: "rgba(249, 115, 22, 0.3)",
-        icon: "🎭",
+        Icon: Film,
         confettiColors: ["#f97316", "#fbbf24", "#ef4444", "#ec4899"],
     },
     HOLLYWOOD: {
         name: "Hollywood",
         gradient: "from-blue-600 to-cyan-400",
         glow: "rgba(37, 99, 235, 0.3)",
-        icon: "🎬",
+        Icon: Clapperboard,
         confettiColors: ["#3b82f6", "#06b6d4", "#8b5cf6", "#fbbf24"],
     },
     ANIME: {
         name: "Anime",
         gradient: "from-purple-600 to-pink-500",
         glow: "rgba(147, 51, 234, 0.3)",
-        icon: "⛩️",
+        Icon: Sparkles,
         confettiColors: ["#a855f7", "#ec4899", "#f472b6", "#c084fc"],
     },
     GLOBAL: {
         name: "Global",
         gradient: "from-emerald-500 to-teal-400",
         glow: "rgba(16, 185, 129, 0.3)",
-        icon: "🌍",
+        Icon: Globe,
         confettiColors: ["#10b981", "#14b8a6", "#22c55e", "#a3e635"],
     },
 };
@@ -71,9 +78,27 @@ export default function PlayPage({ params }) {
     const [showShareCard, setShowShareCard] = useState(false);
     const [timeLeft, setTimeLeft] = useState(null);
     const [lives, setLives] = useState(3);
+    const [imgError, setImgError] = useState(false);
     const timerRef = useRef(null);
 
+    const [showFeedback, setShowFeedback] = useState(false);
     const config = industryConfig[industry] || industryConfig.HOLLYWOOD;
+
+    // Reset feedback on stage change
+    useEffect(() => {
+        setShowFeedback(false);
+        setImgError(false);
+    }, [currentStage, session?.posterPath]);
+
+    // Show feedback when result updates
+    useEffect(() => {
+        if (result && !result.isCorrect) {
+            setShowFeedback(true);
+            // Auto hide after 3 seconds
+            const timer = setTimeout(() => setShowFeedback(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [result]);
 
     // Initialize lives and stage when session starts  
     useEffect(() => {
@@ -119,7 +144,7 @@ export default function PlayPage({ params }) {
 
     const handleTimeUp = async () => {
         // On timeout, advance to next stage instead of losing a life
-        if (currentStage < 4) {
+        if (currentStage < 3) {
             setCurrentStage(prev => prev + 1);
             setTimeLeft(session?.timeLimit || 30);
             // Restart timer
@@ -195,11 +220,11 @@ export default function PlayPage({ params }) {
                 setTimeout(() => setShakeInput(false), 500);
 
                 // Wrong guess → advance to next stage (not lose life)
-                if (currentStage < 4) {
+                if (currentStage < 3) {
                     playTransition();  // Stage transition sound
                     setCurrentStage(prev => prev + 1);
                 } else {
-                    // At final stage, wrong guess = game over (classic) or lose life (rapid fire)
+                    // At final stage (Stage 3), wrong guess = game over (classic) or lose life (rapid fire)
                     if (session?.mode === 'rapidfire') {
                         setLives(prevLives => {
                             const newLives = prevLives - 1;
@@ -281,27 +306,39 @@ export default function PlayPage({ params }) {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="relative aspect-[2/3] max-w-sm mx-auto rounded-2xl overflow-hidden glass"
-                        style={{ boxShadow: `0 0 60px ${config.glow}` }}
+                        className="relative h-full aspect-[2/3] max-h-[60vh] mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-[#111]"
+                        style={{ boxShadow: `0 0 100px ${config.glow}` }}
                     >
-                        {session?.posterPath ? (
+                        {session?.posterPath && !imgError ? (
                             <motion.img
                                 key={session.posterPath}
-                                src={`https://image.tmdb.org/t/p/w500${session.posterPath}`}
+                                src={`https://image.tmdb.org/t/p/w780${session.posterPath}`}
                                 alt="Movie Poster"
                                 className="absolute inset-0 w-full h-full object-cover"
                                 style={{
-                                    filter: `blur(${stageInfo.data.blurAmount || 25}px)`,
-                                    transform: 'scale(1.15)',
+                                    filter: `blur(${stageInfo.data.blurAmount || 10}px)`,
+                                    transform: 'scale(1.1)',
                                 }}
+                                onError={() => setImgError(true)}
                             />
                         ) : (
-                            <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-30`} />
+                            <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-20 flex items-center justify-center`}>
+                                <div className="text-center">
+                                    <config.Icon className="w-20 h-20 text-white/20 mx-auto mb-4" strokeWidth={1} />
+                                    <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Poster Unavailable</p>
+                                </div>
+                            </div>
                         )}
-                        <div className="absolute inset-0 bg-black/10" />
-                        <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm">
-                            <span className="text-sm">🖼️</span>
-                            <span className="text-xs text-neutral-300 uppercase tracking-wider">Blurred Poster</span>
+
+                        {/* Cinematic Vignette */}
+                        <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/60" />
+
+                        {/* Floating Label */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 shadow-xl">
+                            <ImageIcon className="w-5 h-5 text-neutral-200" strokeWidth={1.5} />
+                            <span className="text-xs text-neutral-200 uppercase tracking-widest font-bold">
+                                {imgError ? "Secret Movie" : "Blurred Poster"}
+                            </span>
                         </div>
                     </motion.div>
                 );
@@ -338,13 +375,15 @@ export default function PlayPage({ params }) {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => startGame('classic')}
-                            className="glass rounded-2xl p-6 text-left border border-neutral-700/50 hover:border-neutral-600 transition-all"
+                            className="glass rounded-2xl p-6 text-left border border-neutral-700/50 hover:border-neutral-600 transition-all group"
                         >
-                            <div className="flex items-center gap-4">
-                                <span className="text-4xl">🎯</span>
+                            <div className="flex items-center gap-5">
+                                <div className="p-3 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+                                    <Target className="w-8 h-8 text-neutral-300 group-hover:text-white" strokeWidth={1.5} />
+                                </div>
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Classic Endless</h3>
-                                    <p className="text-neutral-400 text-sm">4 stages of clues. Guess at any stage for bonus points!</p>
+                                    <p className="text-neutral-400 text-sm mt-1">4 stages of clues. Guess at any stage for bonus points!</p>
                                 </div>
                             </div>
                         </motion.button>
@@ -353,13 +392,15 @@ export default function PlayPage({ params }) {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => startGame('rapidfire')}
-                            className="glass rounded-2xl p-6 text-left border border-neutral-700/50 hover:border-red-500/50 transition-all"
+                            className="glass rounded-2xl p-6 text-left border border-neutral-700/50 hover:border-red-500/50 transition-all group"
                         >
-                            <div className="flex items-center gap-4">
-                                <span className="text-4xl">⚡</span>
+                            <div className="flex items-center gap-5">
+                                <div className="p-3 rounded-full bg-white/5 group-hover:bg-red-500/10 transition-colors">
+                                    <Zap className="w-8 h-8 text-neutral-300 group-hover:text-red-400" strokeWidth={1.5} />
+                                </div>
                                 <div>
                                     <h3 className="text-xl font-bold text-white">Rapid Fire</h3>
-                                    <p className="text-neutral-400 text-sm">Beat the clock! 3 lives. Speed bonuses.</p>
+                                    <p className="text-neutral-400 text-sm mt-1">Beat the clock! 3 lives. Speed bonuses.</p>
                                 </div>
                             </div>
                         </motion.button>
@@ -390,6 +431,7 @@ export default function PlayPage({ params }) {
 
     // Loading state
     if (loading && !session) {
+        const LoadingIcon = config.Icon;
         return (
             <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
                 <div
@@ -401,10 +443,26 @@ export default function PlayPage({ params }) {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center relative z-10"
+                    className="text-center relative z-10 flex flex-col items-center"
                 >
-                    <div className="text-5xl mb-4 animate-bounce">{config.icon}</div>
-                    <p className="text-neutral-400">Loading {config.name} challenge...</p>
+                    <motion.div
+                        className="mb-6 relative"
+                        animate={{
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0],
+                            filter: [`drop-shadow(0 0 10px ${config.glow})`, `drop-shadow(0 0 30px ${config.glow})`, `drop-shadow(0 0 10px ${config.glow})`]
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        <LoadingIcon className="w-20 h-20 text-white opacity-90" strokeWidth={1.5} />
+                    </motion.div>
+
+                    <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400 mb-2">
+                        Setting the Scene...
+                    </h2>
+                    <p className="text-neutral-500 text-sm tracking-widest uppercase">
+                        {config.name} Cinema
+                    </p>
                 </motion.div>
             </div>
         );
@@ -423,12 +481,12 @@ export default function PlayPage({ params }) {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center glass rounded-2xl p-8 max-w-md relative z-10"
+                    className="text-center glass rounded-2xl p-8 max-w-md relative z-10 flex flex-col items-center"
                 >
-                    <div className="text-5xl mb-4">😢</div>
-                    <h2 className="text-xl font-bold text-white mb-2">Oops!</h2>
+                    <Frown className="w-16 h-16 text-neutral-500 mb-6" strokeWidth={1.5} />
+                    <h2 className="text-xl font-bold text-white mb-2">Connection Error</h2>
                     <p className="text-neutral-400 mb-6">{error}</p>
-                    <Link href="/" className="btn-primary">Go Back</Link>
+                    <Link href="/" className="btn-primary">Return to Menu</Link>
                 </motion.div>
             </div>
         );
@@ -454,9 +512,12 @@ export default function PlayPage({ params }) {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring" }}
-                        className="text-7xl mb-6"
+                        className="mb-6 flex justify-center"
                     >
-                        {(session.streak || 0) >= 5 ? "🏆" : "🎬"}
+                        {(session.streak || 0) >= 5 ?
+                            <Sparkles className="w-20 h-20 text-yellow-400" strokeWidth={1.5} /> :
+                            <config.Icon className="w-20 h-20 text-white/80" strokeWidth={1.5} />
+                        }
                     </motion.div>
 
                     <h2 className={`text-3xl font-bold mb-4 bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>
@@ -510,8 +571,8 @@ export default function PlayPage({ params }) {
                         <ShareCard
                             industry={industry}
                             mode={session?.mode || 'classic'}
-                            guessedAtStage={guessedAtStage || 4}
-                            totalStages={4}
+                            guessedAtStage={guessedAtStage || 3}
+                            totalStages={3}
                             streak={session?.streak || 0}
                             score={session?.totalScore || session?.finalScore || 0}
                             movieTitle={session?.correctAnswer}
@@ -525,125 +586,132 @@ export default function PlayPage({ params }) {
 
     // Main Game Screen - Cinematic Spotlights Layout
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-[#0a0a0a] relative selection:bg-white/10">
-            {/* Spotlight Gradient - Matches Landing Page */}
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
-                }}
-            />
-
-            {/* Ambient Industry Tint - Very subtle at bottom */}
-            <div
-                className="absolute inset-0 pointer-events-none opacity-20"
-                style={{
-                    background: `linear-gradient(to top, ${config.glow} 0%, transparent 30%)`,
-                }}
-            />
-
-            {/* Minimal HUD - Top */}
-            <MinimalHUD
-                mode={session?.mode || 'classic'}
-                round={session?.currentRound || 1}
-                score={session?.totalScore || 0}
-                lives={lives}
-                timeLeft={session?.mode === 'rapidfire' ? timeLeft : null}
-                maxTime={session?.timeLimit || 30}
-                isMuted={isMuted}
-                onToggleMute={toggleMute}
+        <div className="h-screen flex flex-row overflow-hidden bg-[#0a0a0a] relative selection:bg-white/10">
+            {/* Left Sidebar: Vertical Film Strip */}
+            <VerticalFilmStrip
+                currentStage={currentStage}
+                totalStages={3}
                 industry={industry}
-                streak={session?.streak || 0}
             />
-
-            {/* Correct Animation Overlay */}
-            <AnimatePresence>
-                {showCorrectAnimation && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 10 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="text-center"
-                        >
-                            <motion.div
-                                initial={{ rotate: -10, scale: 0 }}
-                                animate={{ rotate: 0, scale: 1 }}
-                                transition={{ type: "spring", damping: 12 }}
-                                className="text-8xl mb-6 relative z-10 drop-shadow-2xl"
-                            >
-                                🎉
-                            </motion.div>
-                            <p className="text-3xl font-bold text-white tracking-tight mb-2">That's right!</p>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-sm">
-                                <span>+{result?.roundScore || 0} points</span>
-                                {guessedAtStage === 1 && <span className="text-amber-400">★ Perfect</span>}
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col justify-center items-center px-6 relative z-10 w-full max-w-7xl mx-auto">
-                {/* Stage Content with Transition */}
-                <StageTransition stage={currentStage}>
-                    <div className="w-full max-w-5xl mx-auto">
-                        <div className="relative group">
-                            {/* Content Frame */}
-                            {getStageContent()}
-                        </div>
-                    </div>
-                </StageTransition>
+            <main className="flex-1 relative flex flex-col min-w-0">
+                {/* Background Effects */}
+                <CinematicBackground />
 
-                {/* Result Feedback - Floating pill */}
-                <AnimatePresence>
-                    {result && !result.isCorrect && !result.gameOver && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className={`
-                                absolute bottom-24 left-1/2 -translate-x-1/2 z-30
-                                px-6 py-3 rounded-xl text-sm font-medium backdrop-blur-md shadow-2xl
-                                flex items-center gap-2
-                                ${result.status === "NEAR_MISS"
-                                    ? "bg-amber-950/40 text-amber-200 border border-amber-500/20"
-                                    : "bg-red-950/40 text-red-200 border border-red-500/20"
-                                }
-                            `}
-                        >
-                            <span className="text-lg">{result.status === "NEAR_MISS" ? "🤏" : "❌"}</span>
-                            {result.message}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Bottom Controls - Unified Bar */}
-            <div className="relative z-20 px-6 pb-8 pt-4">
-                <div className="max-w-2xl mx-auto space-y-6">
-                    {/* Slim Film Strip */}
-                    <SlimFilmStrip
-                        currentStage={currentStage}
+                {/* Top HUD */}
+                <div className="relative z-20">
+                    <MinimalHUD
+                        mode={session?.mode || 'classic'}
+                        round={session?.currentRound || 1}
+                        score={session?.totalScore || 0}
+                        lives={lives}
+                        timeLeft={session?.mode === 'rapidfire' ? timeLeft : null}
+                        maxTime={session?.timeLimit || 30}
+                        isMuted={isMuted}
+                        onToggleMute={toggleMute}
                         industry={industry}
-                        className="opacity-80 hover:opacity-100 transition-opacity"
+                        streak={session?.streak || 0}
                     />
+                </div>
 
-                    {/* Guess Input - Matching Landing Page Input Style */}
+                {/* Center Stage & Dynamic Content */}
+                <div className="flex-1 relative flex items-center justify-center p-4">
+                    <AnimatePresence mode="wait">
+                        {showCorrectAnimation ? (
+                            <motion.div
+                                key="correct-overlay"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, y: 10 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="text-center"
+                                >
+                                    <motion.div
+                                        initial={{ rotate: -10, scale: 0 }}
+                                        animate={{ rotate: 0, scale: 1 }}
+                                        transition={{ type: "spring", damping: 12 }}
+                                        className="text-8xl mb-6 relative z-10 drop-shadow-2xl"
+                                    >
+                                        <PartyPopper className="w-24 h-24 text-yellow-400" strokeWidth={1.5} />
+                                    </motion.div>
+                                    <p className="text-3xl font-bold text-white tracking-tight mb-2">That's right!</p>
+                                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-sm">
+                                        <span>+{result?.roundScore || 0} points</span>
+                                        {guessedAtStage === 1 && (
+                                            <span className="flex items-center gap-1 text-amber-400">
+                                                <Star className="w-3 h-3 fill-current" /> Perfect
+                                            </span>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="stage-content"
+                                className="w-full h-full flex items-center justify-center"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                {getStageContent()}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Feedback / Near Miss Overlay */}
+                    {/* Feedback / Near Miss Overlay */}
+                    <AnimatePresence>
+                        {result && showFeedback && !result.isCorrect && !result.gameOver && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className={`
+                                    absolute bottom-32 left-1/2 -translate-x-1/2 z-40
+                                    px-6 py-3 rounded-full shadow-2xl border
+                                    flex items-center gap-3
+                                    ${result.status === "NEAR_MISS"
+                                        ? "bg-neutral-900/95 border-amber-500/30 text-amber-500"
+                                        : "bg-neutral-900/95 border-red-500/30 text-red-500"
+                                    }
+                                `}
+                            >
+                                <div className={`text-xl ${result.status === "NEAR_MISS" ? "text-amber-500" : "text-red-500"}`}>
+                                    {result.status === "NEAR_MISS" ?
+                                        <Zap className="w-6 h-6 fill-current" /> :
+                                        <XCircle className="w-6 h-6" />
+                                    }
+                                </div>
+                                <div>
+                                    <p className="font-bold text-xs uppercase tracking-widest">
+                                        {result.status === "NEAR_MISS" ? "Close Call" : "Missed"}
+                                    </p>
+                                    <p className="text-[10px] opacity-60 font-mono mt-0.5 uppercase tracking-wider">{result.message}</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Bottom Tactile Console */}
+                <div className="relative z-30 p-6 md:p-8">
+                    {/* Gradient Fade for seamless blend */}
+                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black via-black/90 to-transparent -z-10" />
+
                     <motion.form
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
                         onSubmit={handleSubmit}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="relative z-30"
+                        className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-3 items-stretch shadow-2xl shadow-black/50"
                     >
-                        <div className="flex gap-2 p-1.5 rounded-2xl bg-neutral-900/80 border border-neutral-800/80 shadow-2xl backdrop-blur-xl">
+                        {/* Tactile Input */}
+                        <div className="flex-1">
                             <AutocompleteInput
                                 value={guess}
                                 onChange={(e) => setGuess(e.target.value)}
@@ -652,27 +720,50 @@ export default function PlayPage({ params }) {
                                 industry={industry}
                                 disabled={loading || showCorrectAnimation}
                                 shakeOnError={shakeInput}
-                                className="flex-1 bg-transparent border-none text-white placeholder:text-neutral-600 focus:ring-0 h-11 px-3"
+                                className="w-full"
                             />
-                            <button
-                                type="submit"
-                                disabled={loading || !guess.trim() || showCorrectAnimation}
-                                className={`
-                                    px-6 h-11 rounded-xl font-medium text-sm text-white tracking-wide
-                                    transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                                    hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
-                                    bg-gradient-to-r ${config.gradient}
-                                `}
-                                style={{
-                                    boxShadow: `0 0 15px ${config.glow}`,
-                                }}
-                            >
-                                {loading ? "..." : "Guess"}
-                            </button>
                         </div>
+
+                        {/* Shimmer Button */}
+                        <button
+                            type="submit"
+                            disabled={loading || !guess.trim() || showCorrectAnimation}
+                            className={`
+                                relative overflow-hidden group
+                                px-8 h-12 md:h-auto rounded-2xl font-bold text-sm tracking-widest uppercase
+                                transition-all duration-300
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                ${guess.length >= 3 && !loading
+                                    ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95"
+                                    : "bg-white/10 text-neutral-400 border border-white/5 hover:bg-white/20"}
+                            `}
+                        >
+                            <span className="relative z-10 flex items-center gap-2">
+                                {loading ? (
+                                    <span className="animate-pulse">Checking...</span>
+                                ) : (
+                                    <>
+                                        Guess
+                                        {guess.length >= 3 && <span className="text-lg">↵</span>}
+                                    </>
+                                )}
+                            </span>
+
+                            {/* Shimmer Effect Overlay (Active only) */}
+                            {guess.length >= 3 && !loading && (
+                                <div className="absolute inset-0 -translate-x-full group-hover:animate-shimmer z-0">
+                                    <div className="w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg]" />
+                                </div>
+                            )}
+                        </button>
                     </motion.form>
+
+                    {/* Helper text */}
+                    <p className="text-center text-neutral-600 text-[10px] mt-3 uppercase tracking-widest hidden md:block">
+                        Press Enter to confirm
+                    </p>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

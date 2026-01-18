@@ -3,12 +3,12 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * TypewriterDialogue - Elegant typewriter animation for famous movie quotes
+ * TypewriterDialogue - "Script Reveal" for Stage 2
  * 
  * Features:
- * - Character-by-character reveal with blinking cursor
- * - Cinematic quote styling with dramatic entrance
- * - Customizable speed and delay
+ * - Monospace font (Courier Prime styled)
+ * - Staggered typewriter effect (random delays)
+ * - "Projector Light Beam" highlighting the text
  */
 export default function TypewriterDialogue({
     dialogue,
@@ -24,25 +24,21 @@ export default function TypewriterDialogue({
     const timeoutRef = useRef(null);
     const charIndexRef = useRef(0);
 
+    // Initial reset
     useEffect(() => {
         if (!dialogue) return;
-
-        // Reset state for new dialogue
         setDisplayedText("");
         charIndexRef.current = 0;
         setIsTyping(false);
 
-        // Start typing after delay
         const startTimeout = setTimeout(() => {
             setIsTyping(true);
         }, startDelay);
 
-        return () => {
-            clearTimeout(startTimeout);
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        };
+        return () => clearTimeout(startTimeout);
     }, [dialogue, startDelay]);
 
+    // Typing logic with random jitter
     useEffect(() => {
         if (!isTyping || !dialogue) return;
 
@@ -51,15 +47,18 @@ export default function TypewriterDialogue({
                 setDisplayedText(dialogue.slice(0, charIndexRef.current + 1));
                 charIndexRef.current++;
 
-
                 const char = dialogue[charIndexRef.current - 1];
-                const delay = ['.', '!', '?', ','].includes(char)
-                    ? typingSpeed * 4
-                    : typingSpeed;
+                let baseDelay = typingSpeed;
 
-                timeoutRef.current = setTimeout(typeNextChar, delay);
+                // Dynamic delays for realism
+                if (['.', '!', '?', ','].includes(char)) baseDelay *= 4; // Long pause at punctuation
+                else if (char === ' ') baseDelay *= 1.5; // Slight pause between words
+
+                // Add random jitter creates "manual" feel
+                const randomJitter = (Math.random() * 0.5 + 0.5);
+
+                timeoutRef.current = setTimeout(typeNextChar, baseDelay * randomJitter);
             } else {
-
                 setIsTyping(false);
                 setTimeout(() => {
                     setShowCursor(false);
@@ -75,16 +74,14 @@ export default function TypewriterDialogue({
         };
     }, [isTyping, dialogue, typingSpeed, onComplete]);
 
-    // Cursor blink effect
+    // Cursor blink
     useEffect(() => {
         if (!showCursor) return;
-
         const blinkInterval = setInterval(() => {
             setShowCursor(prev => !prev);
         }, 530);
-
         return () => clearInterval(blinkInterval);
-    }, []);
+    }, [showCursor]);
 
     if (!dialogue) return null;
 
@@ -94,102 +91,83 @@ export default function TypewriterDialogue({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
-            className={`relative flex items-center justify-center min-h-[300px] ${className}`}
+            className={`relative flex items-center justify-center min-h-[300px] w-full max-w-4xl mx-auto rounded-xl overflow-hidden ${className}`}
         >
-            {/* Cinematic backdrop */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
+            {/* Darkened backdrop for focus */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-            {/* Vignette effect */}
+            {/* Projector Light Beam */}
             <div
-                className="absolute inset-0 pointer-events-none"
+                className="absolute inset-0 pointer-events-none mix-blend-screen opacity-40"
                 style={{
-                    background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)'
+                    background: 'conic-gradient(from 0deg at 50% -20%, transparent 45%, rgba(255,255,255,0.1) 48%, rgba(255,255,255,0.2) 52%, transparent 55%)',
+                    filter: 'blur(40px)',
+                    transform: 'scaleY(1.5)'
                 }}
             />
 
-            {/* Quote container */}
+            {/* Beam Glow Spot */}
+            <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-30 mix-blend-screen"
+                style={{
+                    background: 'radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 60%)'
+                }}
+            />
+
+            {/* Quote Container */}
             <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="relative z-10 max-w-2xl mx-auto px-8 text-center"
+                className="relative z-10 max-w-2xl mx-auto px-8 py-12 text-center"
             >
-                {/* Decorative line above */}
-                <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="w-16 h-[1px] bg-gradient-to-r from-transparent via-neutral-500 to-transparent mx-auto mb-8"
-                />
+                {/* Script Paper Texture (Subtle) */}
+                <div className="absolute inset-0 bg-white/5 opacity-0 mix-blend-overlay rounded-lg blur-xl" />
 
-                {/* The quote */}
-                <div className="relative">
-                    {showQuotes && (
-                        <span className="absolute -left-4 -top-4 text-5xl text-neutral-600/50 font-serif select-none">
-                            "
-                        </span>
-                    )}
-
+                <div className="relative font-mono">
                     <motion.p
-                        className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-relaxed tracking-wide font-serif italic"
-                        animate={{
-                            textShadow: displayedText.length === dialogue?.length
-                                ? "0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.2)"
-                                : "none"
+                        className="text-xl md:text-2xl lg:text-3xl text-neutral-200 leading-loose tracking-wide font-mono"
+                        style={{
+                            textShadow: "0 2px 10px rgba(0,0,0,0.5)"
                         }}
-                        transition={{ duration: 0.5 }}
                     >
-                        {displayedText}
+                        {startDelay === 0 ? "" : (
+                            <span className="opacity-40 select-none text-4xl leading-none font-serif text-sky-500">“</span>
+                        )}
+                        <br />
+                        <span className="text-white relative z-10 italic">
+                            {displayedText}
+                        </span>
+                        {/* Closing Quote (only when done) */}
+                        {!isTyping && !showCursor && (
+                            <span className="opacity-40 select-none text-4xl leading-none font-serif text-sky-500 ml-2">”</span>
+                        )}
+
                         <AnimatePresence>
                             {(isTyping || showCursor) && (
                                 <motion.span
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: showCursor ? 1 : 0 }}
-                                    className="inline-block w-[3px] h-[1.2em] bg-amber-400 ml-1 align-middle"
+                                    className="inline-block w-[2px] h-[1em] bg-sky-400 ml-1 align-middle"
+                                    style={{ boxShadow: "0 0 8px #38bdf8" }}
                                 />
                             )}
                         </AnimatePresence>
                     </motion.p>
-
-                    {showQuotes && displayedText.length > 0 && (
-                        <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: displayedText.length === dialogue?.length ? 0.5 : 0 }}
-                            transition={{ delay: 0.5 }}
-                            className="absolute -right-4 -bottom-4 text-5xl text-neutral-600/50 font-serif select-none"
-                        >
-                            "
-                        </motion.span>
-                    )}
                 </div>
 
-                {/* Hint label */}
+                {/* Hint Label */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: startDelay / 1000 + 0.5 }}
-                    className="mt-8 flex items-center justify-center gap-2"
+                    transition={{ delay: 2 }}
+                    className="mt-12 flex items-center justify-center gap-2"
                 >
-                    <span className="text-amber-500 text-lg">💬</span>
-                    <span className="text-neutral-500 text-sm uppercase tracking-widest">Famous Dialogue</span>
+                    <div className="h-px w-12 bg-gradient-to-r from-transparent via-sky-500/50 to-transparent" />
+                    <span className="text-sky-400/80 text-xs font-medium uppercase tracking-[0.2em]">Famous Quote</span>
+                    <div className="h-px w-12 bg-gradient-to-r from-transparent via-sky-500/50 to-transparent" />
                 </motion.div>
-
-                {/* Decorative line below */}
-                <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="w-16 h-[1px] bg-gradient-to-r from-transparent via-neutral-500 to-transparent mx-auto mt-8"
-                />
             </motion.div>
-
-            {/* Subtle film grain overlay */}
-            <div
-                className="absolute inset-0 pointer-events-none opacity-[0.03]"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-                }}
-            />
         </motion.div>
     );
 }

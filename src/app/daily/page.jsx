@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { AnimatedGradient } from "@/components/ui/animated-gradient";
-import FilmReelSpinner from "@/components/ui/film-reel-spinner";
+import { CinematicBackground } from "@/components/ui/cinematic-background";
+import { CalendarDays, Clock, Film, Clapperboard, Sparkles, Check, ArrowLeft, ArrowRight, Flame } from "lucide-react";
 
 const categories = [
-    { id: "BOLLYWOOD", name: "Bollywood", icon: "🎭", color: "#f97316", tagline: "Masala & Magic" },
-    { id: "HOLLYWOOD", name: "Hollywood", icon: "🎬", color: "#3b82f6", tagline: "Blockbusters" },
-    { id: "ANIME", name: "Anime", icon: "⛩️", color: "#a855f7", tagline: "Studio Ghibli & More" },
+    { id: "BOLLYWOOD", name: "Bollywood", Icon: Film, color: "#f97316", tagline: "Masala & Magic" },
+    { id: "HOLLYWOOD", name: "Hollywood", Icon: Clapperboard, color: "#3b82f6", tagline: "Blockbusters" },
+    { id: "ANIME", name: "Anime", Icon: Sparkles, color: "#a855f7", tagline: "Studio Ghibli & More" },
 ];
 
 export default function DailyChallengePage() {
@@ -69,137 +69,130 @@ export default function DailyChallengePage() {
         return () => clearInterval(interval);
     }, []);
 
-    // Show spinner while loading
     if (loading) {
         return (
-            <AnimatedGradient className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <FilmReelSpinner size="lg" industry="HOLLYWOOD" className="mx-auto mb-4" />
-                    <p className="text-neutral-500 text-sm">Loading today's challenges...</p>
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-radial-gradient from-white/5 to-transparent opacity-20" />
+                <div className="text-center relative z-10">
+                    <div className="animate-spin mb-4">
+                        <Clock className="w-8 h-8 text-neutral-500 mx-auto" />
+                    </div>
+                    <p className="text-neutral-500 text-xs uppercase tracking-widest">Loading challenges...</p>
                 </div>
-            </AnimatedGradient>
+            </div>
         );
     }
 
     return (
-        <AnimatedGradient className="min-h-screen">
-            <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
+            {/* Ambient Background */}
+            <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    background: "radial-gradient(circle at 50% -20%, rgba(251, 191, 36, 0.1), rgba(255,255,255,0.05) 40%, transparent 80%)",
+                    filter: "blur(60px)",
+                }}
+            />
+
+            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-10"
+                    className="text-center mb-12"
                 >
-                    <Link href="/" className="text-neutral-500 hover:text-white transition-colors text-sm mb-4 inline-block">
-                        ← Back to Menu
+                    <Link href="/" className="group inline-flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-xs uppercase tracking-widest mb-8">
+                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Menu
                     </Link>
 
-                    <motion.div
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        className="text-6xl mb-4"
-                    >
-                        📅
-                    </motion.div>
+                    <div className="relative mx-auto mb-6 w-16 h-16">
+                        <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse" />
+                        <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center shadow-2xl">
+                            <CalendarDays className="w-8 h-8 text-amber-500" strokeWidth={1.5} />
+                        </div>
+                    </div>
 
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                    <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50 mb-3 tracking-tight">
                         Daily Challenge
                     </h1>
-                    <p className="text-neutral-400">
-                        One movie per category. One chance. Prove your skills!
+                    <p className="text-neutral-400 max-w-md mx-auto">
+                        One movie per category. One chance.
+                        <br />
+                        <span className="text-amber-500/80 font-medium">Reset in {countdown}</span>
                     </p>
-                </motion.div>
-
-                {/* Countdown */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-center mb-10"
-                >
-                    <p className="text-neutral-500 text-xs uppercase tracking-widest mb-2">
-                        Next challenge in
-                    </p>
-                    <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full glass border border-neutral-700/50">
-                        <span className="text-xl">⏱️</span>
-                        <span className="text-2xl font-mono font-bold text-white tracking-wider">
-                            {countdown}
-                        </span>
-                    </div>
                 </motion.div>
 
                 {/* Category Cards */}
-                <div className="space-y-4">
+                <div className="w-full max-w-md space-y-4">
                     {categories.map((cat, index) => {
                         const challenge = dailyChallenges[cat.id];
                         const played = playedToday[cat.id];
+                        const CategoryIcon = cat.Icon;
 
                         return (
                             <motion.div
                                 key={cat.id}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 + index * 0.1 }}
+                                transition={{ delay: 0.1 + index * 0.1 }}
                             >
                                 <Link
                                     href={played ? '#' : `/daily/${cat.id}`}
                                     className={`
-                                        group flex items-center justify-between w-full p-5 rounded-2xl 
-                                        glass border border-neutral-700/50 
+                                        group relative flex items-center justify-between w-full p-4 rounded-xl
+                                        border transition-all duration-300 overflow-hidden
                                         ${played
-                                            ? 'opacity-60 cursor-default'
-                                            : 'hover:border-neutral-600 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-900/30 border-white/5 opacity-60 cursor-default'
+                                            : 'bg-neutral-900/60 border-white/10 hover:border-white/20 hover:bg-white/5'
                                         }
-                                        transition-all duration-200
                                     `}
                                     onClick={(e) => played && e.preventDefault()}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        {/* Icon */}
+                                    {/* Hosting Glow */}
+                                    {!played && (
                                         <div
-                                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                                            style={{ background: `radial-gradient(circle at center, ${cat.color}15, transparent 70%)` }}
+                                        />
+                                    )}
+
+                                    <div className="flex items-center gap-4 relative z-10">
+                                        <div
+                                            className="w-12 h-12 rounded-lg flex items-center justify-center border"
                                             style={{
-                                                background: `linear-gradient(135deg, ${cat.color}20, ${cat.color}10)`,
-                                                border: `1px solid ${cat.color}30`,
+                                                background: `${cat.color}10`,
+                                                borderColor: `${cat.color}30`,
+                                                color: cat.color
                                             }}
                                         >
-                                            {cat.icon}
+                                            <CategoryIcon className="w-6 h-6" strokeWidth={1.5} />
                                         </div>
 
-                                        {/* Info */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-white">
+                                        <div className="text-left">
+                                            <h3 className={`text-lg font-medium transition-colors ${played ? 'text-neutral-500' : 'text-neutral-200 group-hover:text-white'}`}>
                                                 {cat.name}
                                             </h3>
-                                            <p className="text-neutral-500 text-sm">
-                                                {cat.tagline}
+                                            <p className="text-neutral-500 text-xs">
+                                                {played
+                                                    ? 'Challenge completed'
+                                                    : 'Ready to play'
+                                                }
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Status */}
-                                    <div className="flex items-center gap-3">
-                                        {challenge && (
-                                            <div className="text-right">
-                                                <p className="text-neutral-400 text-xs">Today's stats</p>
-                                                <p className="text-neutral-300 text-sm">
-                                                    {challenge.totalWins}/{challenge.totalAttempts} won
-                                                </p>
-                                            </div>
-                                        )}
-
+                                    {/* Status Indicator */}
+                                    <div className="relative z-10">
                                         {played ? (
-                                            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-                                                ✓ Completed
-                                            </span>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                                                <Check className="w-3.5 h-3.5" />
+                                                <span className="text-xs font-medium">Done</span>
+                                            </div>
                                         ) : (
-                                            <motion.span
-                                                animate={{ x: [0, 4, 0] }}
-                                                transition={{ duration: 1.5, repeat: Infinity }}
-                                                className="text-neutral-600 group-hover:text-neutral-400 transition-colors"
-                                            >
-                                                →
-                                            </motion.span>
+                                            <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-white" />
+                                            </div>
                                         )}
                                     </div>
                                 </Link>
@@ -208,21 +201,19 @@ export default function DailyChallengePage() {
                     })}
                 </div>
 
-                {/* Streak Info */}
+                {/* Footer Streak */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className="mt-10 text-center"
+                    transition={{ delay: 0.5 }}
+                    className="mt-12 text-center"
                 >
-                    <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass border border-neutral-800">
-                        <span className="text-orange-400">🔥</span>
-                        <span className="text-neutral-500 text-sm">
-                            Keep playing daily to build your streak!
-                        </span>
+                    <div className="inline-flex items-center gap-2 text-neutral-500 text-xs uppercase tracking-widest">
+                        <Flame className="w-4 h-4 text-orange-500" />
+                        <span>Build your streak daily</span>
                     </div>
                 </motion.div>
-            </div>
-        </AnimatedGradient>
+            </main>
+        </div>
     );
 }

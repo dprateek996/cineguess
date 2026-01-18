@@ -49,35 +49,29 @@ function generateFallbackTrivia(movie) {
 }
 
 // Get stage-based clue data for current round
-// Stage 1: Scene (backdrop), Stage 2: Dialogue, Stage 3: Emoji, Stage 4: Blurred Poster
+// Stage 1: Blurred Poster, Stage 2: Dialogue, Stage 3: Scene (Reveal)
 function getStageData(movie, stage = 1) {
     const stages = {
         1: {
-            type: 'scene',
-            data: { backdropPath: movie.backdropPath },
+            type: 'poster',
+            data: {
+                posterPath: movie.posterPath,
+                blurAmount: 10  // Reduced blur (10px) per user request
+            },
             pointsMultiplier: 4,
-            label: 'Scene Clue'
+            label: 'Blurred Poster'
         },
         2: {
             type: 'dialogue',
             data: { dialogue: movie.hints?.level2Dialogue || 'A memorable line from this film...' },
-            pointsMultiplier: 3,
+            pointsMultiplier: 2,
             label: 'Famous Dialogue'
         },
         3: {
-            type: 'trivia',
-            data: { trivia: movie.hints?.level4Trivia || generateFallbackTrivia(movie) },
-            pointsMultiplier: 2,
-            label: 'Movie Trivia'
-        },
-        4: {
-            type: 'poster',
-            data: {
-                posterPath: movie.posterPath,
-                blurAmount: 25  // Fixed blur for final stage
-            },
+            type: 'scene',
+            data: { backdropPath: movie.backdropPath },
             pointsMultiplier: 1,
-            label: 'Blurred Poster'
+            label: 'Movie Scene'
         }
     };
 
@@ -91,8 +85,7 @@ function getHintsForRound(movie, maxHints) {
     const allHints = [
         { type: 'poster', text: 'Look at the blurred poster', level: 1 },
         { type: 'dialogue', text: movie.hints.level2Dialogue, level: 2 },
-        { type: 'emoji', text: movie.hints.level3Emoji, level: 3 },
-        { type: 'trivia', text: movie.hints.level4Trivia, level: 4 },
+        { type: 'scene', text: 'Scene Reveal', level: 3 },
     ]
 
     return allHints.slice(0, maxHints)
@@ -103,7 +96,8 @@ function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic'
     const baseScore = 100 * round
 
     // Stage-based multiplier (earlier stage = more points)
-    const stageMultipliers = { 1: 4, 2: 3, 3: 2, 4: 1 }
+    // Stage 1 (Poster): 4x, Stage 2 (Dialogue): 2x, Stage 3 (Scene): 1x
+    const stageMultipliers = { 1: 4, 2: 2, 3: 1 }
     const stageMultiplier = stageMultipliers[stage] || 1
 
     // Streak bonus
@@ -130,15 +124,28 @@ async function getNextMovie(industry, playedMovieIds = []) {
         // If all movies played, allow repeats
         const totalCount = await prisma.movie.count({ where: { industry } })
         if (totalCount === 0) {
-            throw new Error(`No movies found for ${industry}`)
+            // First time seeding synchronously
+            console.log(`No movies found for ${industry}. starting initial seed...`);
+            const { seedMovies } = await import('./movieSeeder');
+            await seedMovies(industry, 5);
+        } else if (totalCount < 10) {
+            // Low count: seed in background
+            console.log(`Low movie count (${totalCount}) for ${industry}. Triggering background seed...`);
+            import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
         }
 
-        const skip = Math.floor(Math.random() * totalCount)
+        const skip = Math.floor(Math.random() * (await prisma.movie.count({ where: { industry } })))
         return prisma.movie.findFirst({
             where: { industry },
             skip,
             include: { hints: true },
         })
+    }
+
+    // Trigger background seed if count is getting low (preventive)
+    if (count < 5) {
+        console.log(`Low unplayed count (${count}) for ${industry}. Triggering background seed...`);
+        import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
     }
 
     const skip = Math.floor(Math.random() * count)
@@ -188,7 +195,6 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
                 1: getStageData(movie, 1),
                 2: getStageData(movie, 2),
                 3: getStageData(movie, 3),
-                4: getStageData(movie, 4),
             },
             // Legacy hints (for backwards compatibility)
             hints,
@@ -272,7 +278,6 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
                         1: getStageData(nextMovie, 1),
                         2: getStageData(nextMovie, 2),
                         3: getStageData(nextMovie, 3),
-                        4: getStageData(nextMovie, 4),
                     },
                     blurAmount: nextDifficulty.blur,
                     timeLimit: nextDifficulty.timeLimit,
@@ -311,9 +316,9 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
         }
 
         // Classic Mode with Stage System:
-        // - Stages 1-3: Wrong guess advances to next stage (handled by frontend)
-        // - Stage 4: Wrong guess = Game Over
-        if (currentStage < 4) {
+        // - Stages 1-2: Wrong guess advances to next stage (handled by frontend)
+        // - Stage 3: Wrong guess = Game Over
+        if (currentStage < 3) {
             // Not at final stage - let frontend advance to next stage
             return {
                 isCorrect: false,

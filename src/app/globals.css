@@ -415,21 +415,23 @@ small,
    ============================================ */
 
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: white;
+  background: white;
+  color: black;
   font-family: var(--font-body);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-bold);
   font-size: var(--text-base);
   padding: 12px 32px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  background: #fcfcfc;
 }
 
 .btn-secondary {
@@ -517,4 +519,72 @@ small,
   h3 {
     font-size: var(--text-xl);
   }
+}
+
+/* ============================================
+   Cinematic Animations (Phase 4)
+   ============================================ */
+
+@keyframes flare {
+  0% {
+    transform: translateX(-150%) skewX(-45deg);
+  }
+
+  100% {
+    transform: translateX(150%) skewX(-45deg);
+  }
+}
+
+.animate-flare {
+  animation: flare 3s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+/* Glitch Effect for Near Miss */
+@keyframes glitch-skew {
+  0% {
+    transform: skew(0deg);
+  }
+
+  10% {
+    transform: skew(-2deg);
+  }
+
+  20% {
+    transform: skew(2deg);
+  }
+
+  30% {
+    transform: skew(-1deg);
+  }
+
+  40% {
+    transform: skew(1deg);
+  }
+
+  50% {
+    transform: skew(0deg);
+  }
+
+  100% {
+    transform: skew(0deg);
+  }
+}
+
+.animate-glitch {
+  animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+  color: #eab308;
 }

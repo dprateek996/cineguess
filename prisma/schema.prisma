@@ -132,7 +132,7 @@ model GameSession {
 
 model DailyGame {
   id        String   @id @default(cuid())
-  date      DateTime @unique @default(now()) @db.Date
+  date      DateTime @default(now()) @db.Date
   movieId   String
   movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
   industry  Industry // Which category this daily is for

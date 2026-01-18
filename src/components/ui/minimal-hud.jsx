@@ -106,7 +106,7 @@ export default function MinimalHUD({
         <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between px-4 py-2 bg-black/30 backdrop-blur-sm border-b border-white/5"
+            className="flex items-center justify-between px-6 py-4 bg-black/30 backdrop-blur-sm border-b border-white/5"
         >
             {/* Left: Exit + Sound */}
             <div className="flex items-center gap-4">

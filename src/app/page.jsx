@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import CurtainReveal from "@/components/ui/curtain-reveal";
+import { Film, Calendar, Eye, Lightbulb, Trophy, ArrowRight } from "lucide-react";
 
 const modes = [
     { id: "BOLLYWOOD", name: "Bollywood", tagline: "Masala & Magic", color: "#f97316" },
@@ -12,45 +13,45 @@ const modes = [
 function GameLanding() {
     return (
         <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
-            {/* Subtle gradient bg */}
+            {/* Ambient Spotlight (Top Center - Softer) */}
             <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                    background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.4) 0%, transparent 60%)",
+                    background: "radial-gradient(circle at 50% -20%, rgba(120,119,198,0.15), rgba(255,255,255,0.05) 40%, transparent 80%)",
+                    filter: "blur(60px)",
                 }}
             />
 
             <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
 
-                {/* Logo */}
+                {/* Logo & Title Refined */}
                 <motion.div
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="text-center mb-14"
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="text-center mb-16 relative"
                 >
-                    {/* Film reel icon */}
-                    <motion.div
-                        className="inline-flex items-center justify-center w-14 h-14 mb-5 rounded-full border border-neutral-800/80 bg-neutral-900/50"
-                        style={{
-                            boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
-                        }}
-                        whileHover={{ scale: 1.05, rotate: 10 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                    >
-                        <span className="text-xl">🎞️</span>
-                    </motion.div>
+                    {/* Glowing Logo */}
+                    <div className="relative inline-block mb-6 group">
+                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all duration-500" />
+                        <motion.div
+                            className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md shadow-2xl"
+                            whileHover={{ scale: 1.05, rotate: 5 }}
+                            transition={{ type: "spring", stiffness: 300 }}
+                        >
+                            <Film className="w-8 h-8 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]" strokeWidth={1.5} />
+                        </motion.div>
+                    </div>
 
                     <h1
-                        className="font-display text-4xl md:text-5xl font-bold text-white tracking-tight mb-2"
-                        style={{
-                            textShadow: "0 4px 20px rgba(0,0,0,0.5)",
-                        }}
+                        className="font-display text-5xl md:text-7xl font-bold tracking-tighter mb-4"
                     >
-                        CineGuess
+                        <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">
+                            CineGuess
+                        </span>
                     </h1>
-                    <p className="text-neutral-500 text-sm">
-                        Blur. Hint. Guess. Repeat.
+                    <p className="text-neutral-400 text-sm md:text-base font-light tracking-wide max-w-md mx-auto">
+                        The ultimate frame-by-frame movie trivia experience
                     </p>
                 </motion.div>
 
@@ -61,11 +62,11 @@ function GameLanding() {
                     transition={{ delay: 0.2, duration: 0.5 }}
                     className="w-full max-w-sm mb-10"
                 >
-                    <p className="text-neutral-600 text-[10px] uppercase tracking-[0.2em] text-center mb-4">
-                        Now Showing
+                    <p className="text-neutral-700 text-[10px] uppercase tracking-[0.25em] text-center mb-6 font-bold">
+                        Select Cinema
                     </p>
 
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                         {modes.map((mode, index) => (
                             <motion.div
                                 key={mode.id}
@@ -75,33 +76,28 @@ function GameLanding() {
                             >
                                 <Link
                                     href={`/play/${mode.id}`}
-                                    className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-neutral-900/60 border border-neutral-800/60 hover:border-neutral-700 hover:bg-neutral-800/60 transition-all duration-200"
-                                    style={{
-                                        boxShadow: "0 2px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)",
-                                    }}
+                                    className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-neutral-900/40 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-all duration-300"
                                 >
                                     <div className="flex items-center gap-4">
                                         <div
-                                            className="w-1 h-8 rounded-full"
+                                            className="w-1.5 h-1.5 rounded-full"
                                             style={{
                                                 backgroundColor: mode.color,
-                                                boxShadow: `0 0 12px ${mode.color}40`,
+                                                boxShadow: `0 0 10px ${mode.color}`,
                                             }}
                                         />
-                                        <div>
-                                            <span className="block text-white font-medium text-[15px]">
+                                        <div className="text-left">
+                                            <span className="block text-neutral-200 font-medium text-[15px] group-hover:text-white transition-colors">
                                                 {mode.name}
                                             </span>
-                                            <span className="block text-neutral-500 text-xs">
+                                            <span className="block text-neutral-600 text-xs group-hover:text-neutral-500 transition-colors">
                                                 {mode.tagline}
                                             </span>
                                         </div>
                                     </div>
-                                    <span
-                                        className="text-neutral-600 group-hover:text-neutral-400 group-hover:translate-x-0.5 transition-all"
-                                    >
-                                        →
-                                    </span>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300 text-neutral-400">
+                                        <ArrowRight className="w-4 h-4" />
+                                    </div>
                                 </Link>
                             </motion.div>
                         ))}
@@ -113,66 +109,65 @@ function GameLanding() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
-                    className="w-full max-w-sm mb-10"
+                    className="w-full max-w-sm mb-12"
                 >
                     <Link
                         href="/daily"
-                        className="group relative flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 hover:border-amber-400/50 hover:from-amber-500/15 hover:to-orange-500/15 transition-all duration-200"
-                        style={{
-                            boxShadow: "0 2px 15px rgba(251, 191, 36, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
-                        }}
+                        className="group relative flex items-center justify-between w-full p-1 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-500"
                     >
-                        {/* Pulse effect */}
-                        <motion.div
-                            animate={{
-                                scale: [1, 1.05, 1],
-                                opacity: [0.3, 0.5, 0.3],
-                            }}
-                            transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                            }}
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10"
-                        />
-
-                        <div className="relative flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                                <span className="text-xl">📅</span>
+                        <div className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-[#0a0a0a] border border-amber-500/20 group-hover:border-amber-500/30 transition-all">
+                            <div className="relative flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-lg bg-amber-900/20 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                    <Calendar className="w-5 h-5 text-amber-500" strokeWidth={1.5} />
+                                </div>
+                                <div className="text-left">
+                                    <span className="block text-amber-100 font-medium text-[15px]">
+                                        Daily Challenge
+                                    </span>
+                                    <span className="block text-amber-500/60 text-xs">
+                                        New movie every 24h
+                                    </span>
+                                </div>
                             </div>
-                            <div>
-                                <span className="block text-amber-200 font-medium text-[15px]">
-                                    Daily Challenge
-                                </span>
-                                <span className="block text-amber-400/60 text-xs">
-                                    New movie every day!
-                                </span>
-                            </div>
+                            <Trophy className="w-4 h-4 text-amber-500/40 group-hover:text-amber-500 transition-colors" />
                         </div>
-                        <span className="relative text-amber-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all">
-                            →
-                        </span>
                     </Link>
                 </motion.div>
 
-                {/* How to play pill */}
+                {/* How to play pill - Refined */}
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                     className="text-center"
                 >
                     <div
-                        className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-neutral-800/60 bg-neutral-900/40"
-                        style={{
-                            boxShadow: "0 2px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.02)",
-                        }}
+                        className="inline-flex items-center gap-6 px-6 py-3 rounded-full border border-white/5 bg-white/5 backdrop-blur-sm"
                     >
-                        <span className="text-neutral-500 text-xs">🎬 See blur</span>
-                        <span className="w-0.5 h-3 rounded-full bg-neutral-700/50" />
-                        <span className="text-neutral-500 text-xs">💡 Get hints</span>
-                        <span className="w-0.5 h-3 rounded-full bg-neutral-700/50" />
-                        <span className="text-neutral-500 text-xs">🏆 Score</span>
+                        <div className="flex flex-col items-center gap-1 group">
+                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+                                <Eye className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
+                            </div>
+                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Observe</span>
+                        </div>
+
+                        <div className="w-px h-6 bg-white/5" />
+
+                        <div className="flex flex-col items-center gap-1 group">
+                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+                                <Lightbulb className="w-3.5 h-3.5 text-neutral-400 group-hover:text-yellow-400 transition-colors" />
+                            </div>
+                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Hint</span>
+                        </div>
+
+                        <div className="w-px h-6 bg-white/5" />
+
+                        <div className="flex flex-col items-center gap-1 group">
+                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+                                <Trophy className="w-3.5 h-3.5 text-neutral-400 group-hover:text-amber-400 transition-colors" />
+                            </div>
+                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Win</span>
+                        </div>
                     </div>
                 </motion.div>
             </main>

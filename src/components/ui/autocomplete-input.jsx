@@ -3,13 +3,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * AutocompleteInput - Smart movie title input with fuzzy search
+ * AutocompleteInput - "Tactile Console" Input
  * 
  * Features:
+ * - Glassmorphism 2.0 (Deep dark glass)
+ * - Radial Flare on Focus
  * - Debounced API search
- * - Keyboard navigation (↑/↓/Enter/Esc)
- * - Mobile-friendly tap selection
- * - Highlights matching text
+ * - Keyboard navigation
  */
 export default function AutocompleteInput({
     value,
@@ -134,10 +134,8 @@ export default function AutocompleteInput({
     // Highlight matching text in suggestion
     const highlightMatch = (text, query) => {
         if (!query) return text;
-
         const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
         const parts = text.split(regex);
-
         return parts.map((part, i) =>
             regex.test(part) ? (
                 <span key={i} className="text-amber-400 font-semibold">{part}</span>
@@ -146,35 +144,52 @@ export default function AutocompleteInput({
     };
 
     return (
-        <div ref={containerRef} className={`relative ${className}`}>
-            {/* Input field */}
-            <div className="relative">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={value}
-                    onChange={(e) => onChange(e)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => suggestions.length > 0 && setIsOpen(true)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    autoComplete="off"
-                    className={`
-                        input-game w-full pr-10
-                        ${shakeOnError ? "animate-shake" : ""}
-                    `}
-                />
+        <div ref={containerRef} className={`relative group ${className}`}>
 
-                {/* Loading indicator */}
-                {isLoading && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-4 h-4 border-2 border-neutral-600 border-t-amber-500 rounded-full"
-                        />
-                    </div>
-                )}
+            {/* Input Container with "Tactile" Glassmorphism */}
+            <div className={`
+                relative bg-black/40 backdrop-blur-xl rounded-2xl 
+                border-white/10
+                transition-all duration-300
+                group-focus-within:bg-black/60 group-focus-within:border-white/20
+                ${shakeOnError ? "border-red-500/50 bg-red-900/10 animate-shake" : "border"}
+            `}>
+
+                {/* Radial Flare (Focus State) */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                    <div className="absolute -inset-full bg-gradient-to-r from-transparent via-blue-500/10 to-transparent blur-xl opacity-0 group-focus-within:animate-flare" />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                </div>
+
+                <div className="relative flex items-center">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={value}
+                        onChange={(e) => onChange(e)}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        autoComplete="off"
+                        className={`
+                            bg-transparent border-none outline-none ring-0 
+                            text-white placeholder:text-neutral-600
+                            w-full h-12 px-5 font-medium tracking-wide
+                        `}
+                    />
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                        <div className="absolute right-4">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-4 h-4 border-2 border-neutral-600 border-t-amber-500 rounded-full"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Suggestions dropdown */}
@@ -185,10 +200,7 @@ export default function AutocompleteInput({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.98 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 w-full mt-2 py-2 rounded-xl glass border border-neutral-700/50 max-h-60 overflow-y-auto"
-                        style={{
-                            boxShadow: "0 10px 40px rgba(0,0,0,0.4)"
-                        }}
+                        className="absolute bottom-full mb-3 left-0 right-0 py-2 rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 max-h-60 overflow-y-auto z-50 shadow-2xl shadow-black/80"
                     >
                         {suggestions.map((movie, index) => (
                             <motion.button
@@ -201,46 +213,31 @@ export default function AutocompleteInput({
                                     w-full px-4 py-2.5 text-left flex items-center gap-3
                                     transition-colors
                                     ${selectedIndex === index
-                                        ? "bg-neutral-700/50 text-white"
-                                        : "text-neutral-300 hover:bg-neutral-800/50 hover:text-white"
+                                        ? "bg-white/10 text-white"
+                                        : "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
                                     }
                                 `}
                             >
-                                {/* Movie poster thumbnail */}
                                 {movie.posterPath && (
                                     <img
                                         src={`https://image.tmdb.org/t/p/w92${movie.posterPath}`}
                                         alt=""
-                                        className="w-8 h-12 object-cover rounded"
+                                        className="w-6 h-9 object-cover rounded shadow-sm opacity-80"
                                     />
                                 )}
 
                                 <div className="flex-1 min-w-0">
-                                    <p className="truncate text-sm">
+                                    <p className="truncate text-sm font-medium">
                                         {highlightMatch(movie.title, value)}
                                     </p>
                                     {movie.releaseYear && (
-                                        <p className="text-xs text-neutral-500">
+                                        <p className="text-[10px] text-neutral-600">
                                             {movie.releaseYear}
                                         </p>
                                     )}
                                 </div>
                             </motion.button>
                         ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* No results message */}
-            <AnimatePresence>
-                {isOpen && !isLoading && suggestions.length === 0 && value.length >= 2 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute z-50 w-full mt-2 py-3 px-4 rounded-xl glass border border-neutral-700/50 text-center text-neutral-500 text-sm"
-                    >
-                        No movies found
                     </motion.div>
                 )}
             </AnimatePresence>

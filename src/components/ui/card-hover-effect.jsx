@@ -41,7 +41,7 @@ export function CardHoverEffect({ items, className }) {
 }
 
 function Card({ item, isHovered }) {
-    const gradientClass = item.gradient || "from-blue-500 to-purple-500";
+    const gradientClass = item.gradient || "from-blue-500 to-cyan-500";
 
     return (
         <motion.div
