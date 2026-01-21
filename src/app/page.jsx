@@ -1,183 +1,149 @@
 "use client";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Calendar, ArrowRight, Play } from "lucide-react";
 import CurtainReveal from "@/components/ui/curtain-reveal";
-import { Film, Calendar, Eye, Lightbulb, Trophy, ArrowRight } from "lucide-react";
+import { CinematicBackground } from "@/components/ui/cinematic-background";
+import { LampContainer } from "@/components/ui/lamp-effect";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const modes = [
-    { id: "BOLLYWOOD", name: "Bollywood", tagline: "Masala & Magic", color: "#f97316" },
-    { id: "HOLLYWOOD", name: "Hollywood", tagline: "Blockbusters", color: "#3b82f6" },
-    { id: "ANIME", name: "Anime", tagline: "Studio Ghibli & More", color: "#a855f7" },
+    { id: "BOLLYWOOD", name: "Bollywood", tagline: "Masala & Magic", color: "var(--bollywood-from)" },
+    { id: "HOLLYWOOD", name: "Hollywood", tagline: "Blockbusters", color: "var(--hollywood-from)" },
+    { id: "ANIME", name: "Anime", tagline: "Ghibli & More", color: "var(--anime-from)" },
 ];
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.3
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+    }
+};
 
 function GameLanding() {
     return (
-        <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
-            {/* Ambient Spotlight (Top Center - Softer) */}
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    background: "radial-gradient(circle at 50% -20%, rgba(120,119,198,0.15), rgba(255,255,255,0.05) 40%, transparent 80%)",
-                    filter: "blur(60px)",
-                }}
-            />
+        <div className="h-screen w-full bg-background flex flex-col items-center justify-center relative overflow-hidden font-body">
+            <CinematicBackground />
 
-            <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
+            {/* Lamp Effect - Layered & Diffused */}
+            <div className="absolute top-0 w-full z-0 flex justify-center -translate-y-40 md:-translate-y-20 pointer-events-none">
+                <LampContainer className="w-full md:w-[60rem] h-[40rem] bg-transparent !min-h-0" />
+            </div>
 
-                {/* Logo & Title Refined */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="text-center mb-16 relative"
-                >
-                    {/* Glowing Logo */}
-                    <div className="relative inline-block mb-6 group">
-                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all duration-500" />
-                        <motion.div
-                            className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md shadow-2xl"
-                            whileHover={{ scale: 1.05, rotate: 5 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                        >
-                            <Film className="w-8 h-8 text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]" strokeWidth={1.5} />
-                        </motion.div>
+            <motion.main
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex-1 flex flex-col items-center justify-center relative z-10 w-full max-w-5xl px-4"
+            >
+
+                {/* Hero Typography - Refined Vertical Rhythm */}
+                <motion.div variants={itemVariants} className="text-center mb-10 relative pt-20 md:pt-0">
+                    <div className="relative flex flex-col items-center justify-center">
+                        <h1 className="font-display font-bold leading-[0.85] tracking-tighter text-center">
+                            {/* CINE - Solid & Top Layer */}
+                            <span className="block text-[5rem] md:text-[8rem] lg:text-[10rem] text-white z-20 relative drop-shadow-2xl">
+                                CINE
+                            </span>
+
+                            {/* GUESS - Outlined & Tucked Under */}
+                            <span
+                                className="block text-[5rem] md:text-[8rem] lg:text-[10rem] text-transparent z-10 relative -mt-4 md:-mt-8 opacity-90"
+                                style={{
+                                    WebkitTextStroke: "1.5px var(--primary)",
+                                    fontFamily: "var(--font-display)"
+                                }}
+                            >
+                                GUESS
+                            </span>
+                        </h1>
+
+                        {/* Subtle Ambient Glow behind text */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[120px] -z-10 rounded-full" />
                     </div>
 
-                    <h1
-                        className="font-display text-5xl md:text-7xl font-bold tracking-tighter mb-4"
-                    >
-                        <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">
-                            CineGuess
-                        </span>
-                    </h1>
-                    <p className="text-neutral-400 text-sm md:text-base font-light tracking-wide max-w-md mx-auto">
-                        The ultimate frame-by-frame movie trivia experience
+                    <p className="text-muted-foreground text-sm md:text-base font-medium tracking-[0.2em] uppercase mt-8 max-w-md mx-auto opacity-80">
+                        Frame-by-Frame Trivia
                     </p>
                 </motion.div>
 
-                {/* Screenings */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="w-full max-w-sm mb-10"
-                >
-                    <p className="text-neutral-700 text-[10px] uppercase tracking-[0.25em] text-center mb-6 font-bold">
-                        Select Cinema
-                    </p>
-
-                    <div className="space-y-3">
-                        {modes.map((mode, index) => (
-                            <motion.div
-                                key={mode.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 + index * 0.08 }}
-                            >
-                                <Link
-                                    href={`/play/${mode.id}`}
-                                    className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-neutral-900/40 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-all duration-300"
+                {/* Mode Selection - Premium Cards */}
+                <motion.div variants={itemVariants} className="w-full max-w-4xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        {modes.map((mode) => (
+                            <Link key={mode.id} href={`/play/${mode.id}`} className="block h-full cursor-pointer">
+                                <motion.div
+                                    whileHover={{ scale: 1.02, y: -5 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                    className="h-full"
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div
-                                            className="w-1.5 h-1.5 rounded-full"
-                                            style={{
-                                                backgroundColor: mode.color,
-                                                boxShadow: `0 0 10px ${mode.color}`,
-                                            }}
-                                        />
-                                        <div className="text-left">
-                                            <span className="block text-neutral-200 font-medium text-[15px] group-hover:text-white transition-colors">
+                                    <Card className="group relative h-full overflow-hidden bg-white/[0.03] backdrop-blur-xl border-white/10 hover:border-primary/50 hover:bg-white/[0.06] transition-all duration-500 flex flex-col justify-between p-6 rounded-2xl shadow-2xl ring-1 ring-white/5">
+
+                                        {/* Gradient Border Effect via inset shadow or overlay */}
+                                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
+                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[radial-gradient(circle_at_center,var(--primary)_0%,transparent_70%)] opacity-20 group-hover:opacity-30 blur-2xl" />
+
+                                        <div className="mb-4 relative z-10">
+                                            {/* Icon Squircle */}
+                                            <div
+                                                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 shadow-[0_0_20px_-5px_rgba(0,0,0,0.5)] border border-white/10"
+                                                style={{
+                                                    backgroundColor: `${mode.color}15`, // Very subtle tint
+                                                    boxShadow: `0 0 20px ${mode.color}20` // Subtle color glow
+                                                }}
+                                            >
+                                                <Play
+                                                    className="w-5 h-5 fill-current transition-colors duration-300"
+                                                    style={{ color: mode.color }}
+                                                />
+                                            </div>
+
+                                            <h3 className="text-white font-display font-bold text-2xl leading-tight mb-2 tracking-tight group-hover:text-primary transition-colors duration-300">
                                                 {mode.name}
-                                            </span>
-                                            <span className="block text-neutral-600 text-xs group-hover:text-neutral-500 transition-colors">
+                                            </h3>
+                                            <p className="text-muted-foreground text-xs font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
                                                 {mode.tagline}
-                                            </span>
+                                            </p>
                                         </div>
-                                    </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300 text-neutral-400">
-                                        <ArrowRight className="w-4 h-4" />
-                                    </div>
-                                </Link>
-                            </motion.div>
+
+                                        <div className="self-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0 relative z-10">
+                                            <ArrowRight className="w-5 h-5 text-primary" />
+                                        </div>
+                                    </Card>
+                                </motion.div>
+                            </Link>
                         ))}
                     </div>
+
+                    {/* Daily Challenge - Polished Button */}
+                    <motion.div variants={itemVariants} className="flex justify-center">
+                        <Link href="/daily">
+                            <Button
+                                variant="outline"
+                                className="h-12 bg-amber-500/5 text-amber-500 border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)] px-8 rounded-full text-xs uppercase tracking-widest font-bold transition-all duration-300"
+                            >
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Daily Challenge
+                            </Button>
+                        </Link>
+                    </motion.div>
                 </motion.div>
 
-                {/* Daily Challenge Card */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    className="w-full max-w-sm mb-12"
-                >
-                    <Link
-                        href="/daily"
-                        className="group relative flex items-center justify-between w-full p-1 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-500"
-                    >
-                        <div className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-[#0a0a0a] border border-amber-500/20 group-hover:border-amber-500/30 transition-all">
-                            <div className="relative flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-amber-900/20 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                    <Calendar className="w-5 h-5 text-amber-500" strokeWidth={1.5} />
-                                </div>
-                                <div className="text-left">
-                                    <span className="block text-amber-100 font-medium text-[15px]">
-                                        Daily Challenge
-                                    </span>
-                                    <span className="block text-amber-500/60 text-xs">
-                                        New movie every 24h
-                                    </span>
-                                </div>
-                            </div>
-                            <Trophy className="w-4 h-4 text-amber-500/40 group-hover:text-amber-500 transition-colors" />
-                        </div>
-                    </Link>
-                </motion.div>
-
-                {/* How to play pill - Refined */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="text-center"
-                >
-                    <div
-                        className="inline-flex items-center gap-6 px-6 py-3 rounded-full border border-white/5 bg-white/5 backdrop-blur-sm"
-                    >
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
-                                <Eye className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
-                            </div>
-                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Observe</span>
-                        </div>
-
-                        <div className="w-px h-6 bg-white/5" />
-
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
-                                <Lightbulb className="w-3.5 h-3.5 text-neutral-400 group-hover:text-yellow-400 transition-colors" />
-                            </div>
-                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Hint</span>
-                        </div>
-
-                        <div className="w-px h-6 bg-white/5" />
-
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
-                                <Trophy className="w-3.5 h-3.5 text-neutral-400 group-hover:text-amber-400 transition-colors" />
-                            </div>
-                            <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-wider">Win</span>
-                        </div>
-                    </div>
-                </motion.div>
-            </main>
-
-            {/* Footer */}
-            <footer className="py-5 text-center border-t border-neutral-800/30 relative z-10">
-                <p className="text-neutral-700 text-xs">
-                    A movie guessing experience
-                </p>
-            </footer>
+            </motion.main>
         </div>
     );
 }
