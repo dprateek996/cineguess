@@ -38,7 +38,7 @@ export default function VerticalFilmStrip({
     const stages = STAGE_CONFIGS[totalStages] || STAGE_CONFIGS[3];
 
     return (
-        <div className={`h-full flex flex-col items-center py-6 w-20 bg-black/40 backdrop-blur-xl border-r border-white/5 relative z-30 ${className}`}>
+        <div className={`h-full flex flex-col items-center py-6 w-20 bg-zinc-900/40 backdrop-blur-md border-r border-white/10 relative z-30 ${className}`}>
             {/* Film Holes Pattern (Left) - Removed for cleaner look */}
 
             <div className="flex-1 flex flex-col items-center justify-center relative w-full overflow-hidden">

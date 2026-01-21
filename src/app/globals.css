@@ -52,20 +52,20 @@
      ========================================== */
 
   /* Surface & Text */
-  --background: oklch(10% 0.01 240);
-  /* Deep Blue-Black #0a0a1a */
+  --background: oklch(12% 0.01 250);
+  /* Deep "Ink" Black */
   --foreground: oklch(98% 0 0);
-  /* Nearly White */
+  /* Off-White */
 
-  --card: oklch(15% 0.02 240);
-  /* Slightly lighter background */
+  --card: oklch(14% 0.01 250);
+  /* Slightly lighter than ink */
   --card-foreground: oklch(98% 0 0);
 
   --popover: oklch(15% 0.02 240);
   --popover-foreground: oklch(98% 0 0);
 
-  /* Brand / Primary (CineGuess Gold/Generic) */
-  --primary: oklch(75% 0.18 70);
+  /* Brand / Primary (Golden Hour) */
+  --primary: oklch(75% 0.15 85);
   /* Gold/Orange */
   --primary-foreground: oklch(10% 0.05 70);
 
@@ -637,5 +637,15 @@ small,
 
 .animate-glitch {
   animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
-  color: #eab308;
+}
+
+/* Border Beam Animation */
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam calc(var(--duration)*1s) infinite linear;
 }

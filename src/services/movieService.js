@@ -12,33 +12,46 @@ export async function movieExists(tmdbId) {
 }
 
 async function generateHints(movieTitle, releaseYear, industry) {
-    try {
-        const prompt = generateHintsPrompt(movieTitle, releaseYear, industry)
-        const result = await geminiModel.generateContent(prompt)
-        const response = result.response.text()
+    let retries = 0;
+    while (retries < 3) {
+        try {
+            const prompt = generateHintsPrompt(movieTitle, releaseYear, industry)
+            const result = await geminiModel.generateContent(prompt)
+            const response = result.response.text()
 
-        const cleanedResponse = response
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim()
+            const cleanedResponse = response
+                .replace(/```json\n?/g, '')
+                .replace(/```\n?/g, '')
+                .trim()
 
-        const hints = JSON.parse(cleanedResponse)
+            const hints = JSON.parse(cleanedResponse)
 
-       
-        if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
-            throw new Error('Invalid hint structure from Gemini')
-        }
+            if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
+                throw new Error('Invalid hint structure from Gemini')
+            }
 
-        return hints
-    } catch (error) {
-        console.error('Gemini hint generation failed:', error)
+            return hints
+        } catch (error) {
+            console.error('Gemini hint generation failed:', error)
 
-    
-        return {
-            dialogue: `A memorable quote from this ${releaseYear} film`,
-            emoji: '🎬🎭🎪',
-            trivia: `This movie was released in ${releaseYear}`,
-            location: 'A significant filming location',
+            if (error.message.includes('429')) {
+                console.log('Use Backoff: Waiting 10s before retry...')
+                await new Promise(r => setTimeout(r, 10000));
+                retries++;
+                continue;
+            }
+
+            // Only fallback on final retry
+            if (retries === 2) {
+                return {
+                    dialogue: `A memorable quote from this ${releaseYear} film`,
+                    emoji: '🎬🎭🎪',
+                    trivia: `This movie was released in ${releaseYear}`,
+                    location: 'A significant filming location',
+                }
+            }
+            retries++;
+            await new Promise(r => setTimeout(r, 2000)); // Default small delay
         }
     }
 }

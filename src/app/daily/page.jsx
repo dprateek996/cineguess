@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { CinematicBackground } from "@/components/ui/cinematic-background";
+import { FilmGrain } from "@/components/ui/film-grain";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { CalendarDays, Clock, Film, Clapperboard, Sparkles, Check, ArrowLeft, ArrowRight, Flame } from "lucide-react";
 
 const categories = [
@@ -17,7 +18,6 @@ export default function DailyChallengePage() {
     const [countdown, setCountdown] = useState("");
     const [playedToday, setPlayedToday] = useState({});
 
-    // Fetch daily challenges for each category
     useEffect(() => {
         const fetchDailyChallenges = async () => {
             try {
@@ -39,7 +39,6 @@ export default function DailyChallengePage() {
 
         fetchDailyChallenges();
 
-        // Check localStorage for played today
         const today = new Date().toISOString().split('T')[0];
         const played = {};
         categories.forEach(cat => {
@@ -49,7 +48,6 @@ export default function DailyChallengePage() {
         setPlayedToday(played);
     }, []);
 
-    // Countdown to midnight UTC
     useEffect(() => {
         const updateCountdown = () => {
             const now = new Date();
@@ -69,150 +67,127 @@ export default function DailyChallengePage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Ambient Background Wrapper
+    const AmbientBackground = () => (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--gradient-center)_0%,_transparent_65%)] opacity-30 blur-3xl [--gradient-center:theme(colors.primary.DEFAULT/10)]" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background/0 to-transparent blur-3xl opacity-50" />
+            <FilmGrain />
+        </div>
+    );
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-radial-gradient from-white/5 to-transparent opacity-20" />
-                <div className="text-center relative z-10">
-                    <div className="animate-spin mb-4">
-                        <Clock className="w-8 h-8 text-neutral-500 mx-auto" />
+            <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
+                <AmbientBackground />
+                <div className="text-center relative z-10 p-8 rounded-3xl bg-zinc-900/50 backdrop-blur-md border border-white/5">
+                    <div className="animate-spin mb-4 inline-block">
+                        <Clock className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <p className="text-neutral-500 text-xs uppercase tracking-widest">Loading challenges...</p>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Loading challenges...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
-            {/* Ambient Background */}
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    background: "radial-gradient(circle at 50% -20%, rgba(251, 191, 36, 0.1), rgba(255,255,255,0.05) 40%, transparent 80%)",
-                    filter: "blur(60px)",
-                }}
-            />
+        <div className="min-h-screen bg-background flex flex-col relative overflow-hidden selection:bg-primary/20">
+            <AmbientBackground />
 
-            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+            <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10 w-full max-w-lg mx-auto">
 
-                {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-12"
+                    className="text-center mb-12 w-full"
                 >
-                    <Link href="/" className="group inline-flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-xs uppercase tracking-widest mb-8">
-                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Menu
+                    <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors text-xs uppercase tracking-widest mb-10 font-bold">
+                        <ArrowLeft className="w-3 h-3" /> Back to Menu
                     </Link>
 
                     <div className="relative mx-auto mb-6 w-16 h-16">
-                        <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse" />
-                        <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 flex items-center justify-center shadow-2xl">
-                            <CalendarDays className="w-8 h-8 text-amber-500" strokeWidth={1.5} />
+                        <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                        <div className="relative w-full h-full rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
+                            <CalendarDays className="w-8 h-8 text-primary" strokeWidth={1.5} />
                         </div>
                     </div>
 
-                    <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50 mb-3 tracking-tight">
+                    <h1 className="text-5xl font-extrabold text-white mb-3 tracking-tighter">
                         Daily Challenge
                     </h1>
-                    <p className="text-neutral-400 max-w-md mx-auto">
-                        One movie per category. One chance.
-                        <br />
-                        <span className="text-amber-500/80 font-medium">Reset in {countdown}</span>
+                    <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+                        One movie per category. One chance.<br />
+                        <span className="text-primary font-bold">{countdown}</span> until reset.
                     </p>
                 </motion.div>
 
-                {/* Category Cards */}
-                <div className="w-full max-w-md space-y-4">
+                <div className="w-full space-y-4">
                     {categories.map((cat, index) => {
-                        const challenge = dailyChallenges[cat.id];
                         const played = playedToday[cat.id];
                         const CategoryIcon = cat.Icon;
+
+                        if (played) {
+                            return (
+                                <motion.div
+                                    key={cat.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                >
+                                    <div className="w-full px-6 py-5 rounded-2xl border border-white/5 bg-zinc-900/30 flex items-center justify-between opacity-60 grayscale cursor-not-allowed">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-white/5">
+                                                <CategoryIcon className="w-5 h-5 text-muted-foreground" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-muted-foreground">{cat.name}</h3>
+                                                <p className="text-xs text-muted-foreground/60">Challenge Completed</p>
+                                            </div>
+                                        </div>
+                                        <Check className="w-5 h-5 text-emerald-500" />
+                                    </div>
+                                </motion.div>
+                            )
+                        }
 
                         return (
                             <motion.div
                                 key={cat.id}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.1 + index * 0.1 }}
+                                transition={{ delay: index * 0.1 }}
                             >
-                                <Link
-                                    href={played ? '#' : `/daily/${cat.id}`}
-                                    className={`
-                                        group relative flex items-center justify-between w-full p-4 rounded-xl
-                                        border transition-all duration-300 overflow-hidden
-                                        ${played
-                                            ? 'bg-neutral-900/30 border-white/5 opacity-60 cursor-default'
-                                            : 'bg-neutral-900/60 border-white/10 hover:border-white/20 hover:bg-white/5'
-                                        }
-                                    `}
-                                    onClick={(e) => played && e.preventDefault()}
-                                >
-                                    {/* Hosting Glow */}
-                                    {!played && (
-                                        <div
-                                            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                                            style={{ background: `radial-gradient(circle at center, ${cat.color}15, transparent 70%)` }}
-                                        />
-                                    )}
-
-                                    <div className="flex items-center gap-4 relative z-10">
-                                        <div
-                                            className="w-12 h-12 rounded-lg flex items-center justify-center border"
-                                            style={{
-                                                background: `${cat.color}10`,
-                                                borderColor: `${cat.color}30`,
-                                                color: cat.color
-                                            }}
-                                        >
-                                            <CategoryIcon className="w-6 h-6" strokeWidth={1.5} />
-                                        </div>
-
-                                        <div className="text-left">
-                                            <h3 className={`text-lg font-medium transition-colors ${played ? 'text-neutral-500' : 'text-neutral-200 group-hover:text-white'}`}>
-                                                {cat.name}
-                                            </h3>
-                                            <p className="text-neutral-500 text-xs">
-                                                {played
-                                                    ? 'Challenge completed'
-                                                    : 'Ready to play'
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Status Indicator */}
-                                    <div className="relative z-10">
-                                        {played ? (
-                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
-                                                <Check className="w-3.5 h-3.5" />
-                                                <span className="text-xs font-medium">Done</span>
+                                <Link href={`/daily/${cat.id}`}>
+                                    <SpotlightCard className="w-full px-6 py-5 flex items-center justify-between group cursor-pointer transition-transform active:scale-[0.98]">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-zinc-900 border border-white/10 group-hover:border-primary/50 transition-colors">
+                                                <CategoryIcon className="w-5 h-5 text-white group-hover:text-primary transition-colors" />
                                             </div>
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                                                <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-white" />
+                                            <div className="text-left">
+                                                <h3 className="font-bold text-white group-hover:text-primary transition-colors">{cat.name}</h3>
+                                                <p className="text-xs text-muted-foreground">{cat.tagline}</p>
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                        <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-white group-hover:translate-x-1 transition-all" />
+                                    </SpotlightCard>
                                 </Link>
                             </motion.div>
                         );
                     })}
                 </div>
 
-                {/* Footer Streak */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
                     className="mt-12 text-center"
                 >
-                    <div className="inline-flex items-center gap-2 text-neutral-500 text-xs uppercase tracking-widest">
-                        <Flame className="w-4 h-4 text-orange-500" />
+                    <div className="inline-flex items-center gap-2 text-muted-foreground/50 text-[10px] uppercase tracking-[0.2em] font-bold">
+                        <Flame className="w-3 h-3 text-orange-500" />
                         <span>Build your streak daily</span>
                     </div>
                 </motion.div>
+
             </main>
         </div>
     );
