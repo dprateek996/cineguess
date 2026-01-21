@@ -143,35 +143,36 @@ export default function PlayPage({ params }) {
     }, [session?.sessionId, session?.currentRound, session?.mode, session?.isGameOver]);
 
     const handleTimeUp = async () => {
-        // On timeout, advance to next stage instead of losing a life
-        if (currentStage < 3) {
-            setCurrentStage(prev => prev + 1);
-            setTimeLeft(session?.timeLimit || 30);
-            // Restart timer
-            if (timerRef.current) clearInterval(timerRef.current);
-            timerRef.current = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        timerRef.current = null;
-                        setTimeout(() => handleTimeUp(), 0);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
-            // At Stage 4, timeout = lose a life
+        // RAPID FIRE TIMEOUT: Always lose a life
+        if (session?.mode === 'rapidfire') {
             setLives(prevLives => {
                 const newLives = prevLives - 1;
                 if (newLives <= 0) {
                     endGame('timeout');
-                } else {
-                    setTimeLeft(session?.timeLimit || 30);
                 }
                 return newLives;
             });
-            loseLife();
+            loseLife(); // Sync hook state
+
+            // If we survived, try to help by advancing stage
+            if (lives > 1 && currentStage < 3) {
+                setCurrentStage(prev => prev + 1);
+                setTimeLeft(session?.timeLimit || 30);
+
+                // Restart timer
+                if (timerRef.current) clearInterval(timerRef.current);
+                timerRef.current = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 1) {
+                            clearInterval(timerRef.current);
+                            timerRef.current = null;
+                            setTimeout(() => handleTimeUp(), 0);
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+            }
         }
     };
 
@@ -219,22 +220,28 @@ export default function PlayPage({ params }) {
                 setShakeInput(true);
                 setTimeout(() => setShakeInput(false), 500);
 
-                // Wrong guess → advance to next stage (not lose life)
-                if (currentStage < 3) {
-                    playTransition();  // Stage transition sound
-                    setCurrentStage(prev => prev + 1);
+                if (session?.mode === 'rapidfire') {
+                    // RAPID FIRE: Lose life on any wrong guess
+                    setLives(prev => {
+                        const newLives = prev - 1;
+                        if (newLives <= 0) {
+                            playGameOver();
+                            endGame('lives');
+                        }
+                        return newLives;
+                    });
+                    loseLife(); // Sync hook state
+
+                    // Still advance stage if we have lives left
+                    if (lives > 1 && currentStage < 3) {
+                        playTransition();
+                        setCurrentStage(prev => prev + 1);
+                    }
                 } else {
-                    // At final stage (Stage 3), wrong guess = game over (classic) or lose life (rapid fire)
-                    if (session?.mode === 'rapidfire') {
-                        setLives(prevLives => {
-                            const newLives = prevLives - 1;
-                            if (newLives <= 0) {
-                                playGameOver();
-                                endGame('lives');
-                            }
-                            return newLives;
-                        });
-                        loseLife();
+                    // CLASSIC: Only game over at stage 3
+                    if (currentStage < 3) {
+                        playTransition();  // Stage transition sound
+                        setCurrentStage(prev => prev + 1);
                     } else {
                         playGameOver();
                     }
@@ -302,6 +309,8 @@ export default function PlayPage({ params }) {
                     />
                 );
             case 'poster':
+                // Use posterPath from stage data first, fallback to session
+                const posterPath = stageInfo.data.posterPath || session?.posterPath;
                 return (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -309,14 +318,14 @@ export default function PlayPage({ params }) {
                         className="relative h-full aspect-[2/3] max-h-[60vh] mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-[#111]"
                         style={{ boxShadow: `0 0 100px ${config.glow}` }}
                     >
-                        {session?.posterPath && !imgError ? (
+                        {posterPath && !imgError ? (
                             <motion.img
-                                key={session.posterPath}
-                                src={`https://image.tmdb.org/t/p/w780${session.posterPath}`}
+                                key={posterPath}
+                                src={`https://image.tmdb.org/t/p/w780${posterPath}`}
                                 alt="Movie Poster"
                                 className="absolute inset-0 w-full h-full object-cover"
                                 style={{
-                                    filter: `blur(${stageInfo.data.blurAmount || 10}px)`,
+                                    filter: `blur(${stageInfo.data.blurAmount || 15}px)`,
                                     transform: 'scale(1.1)',
                                 }}
                                 onError={() => setImgError(true)}
@@ -325,7 +334,7 @@ export default function PlayPage({ params }) {
                             <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-20 flex items-center justify-center`}>
                                 <div className="text-center">
                                     <config.Icon className="w-20 h-20 text-white/20 mx-auto mb-4" strokeWidth={1} />
-                                    <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Poster Unavailable</p>
+                                    <p className="text-white/40 text-xs uppercase tracking-widest font-medium">Poster Hidden</p>
                                 </div>
                             </div>
                         )}
@@ -337,7 +346,7 @@ export default function PlayPage({ params }) {
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 shadow-xl">
                             <ImageIcon className="w-5 h-5 text-neutral-200" strokeWidth={1.5} />
                             <span className="text-xs text-neutral-200 uppercase tracking-widest font-bold">
-                                {imgError ? "Secret Movie" : "Blurred Poster"}
+                                {imgError || !posterPath ? "Poster Hidden" : "Blurred Poster"}
                             </span>
                         </div>
                     </motion.div>
@@ -492,75 +501,94 @@ export default function PlayPage({ params }) {
         );
     }
 
-    // Game Over Screen
+    // Game Over Screen - Immersive Redesign
     if (session?.isGameOver) {
         return (
-            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
-                <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                        background: "radial-gradient(ellipse at 50% 0%, rgba(30,30,40,0.5) 0%, transparent 70%)",
-                    }}
-                />
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden">
+                {/* Background Ambient */}
+                <div className="absolute inset-0 bg-radial-gradient from-purple-900/20 via-[#050505] to-black opacity-50" />
+
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center glass rounded-3xl p-10 max-w-lg w-full relative z-10"
-                    style={{ boxShadow: `0 0 100px ${config.glow}` }}
+                    className="flex flex-col md:flex-row gap-8 items-center max-w-4xl w-full relative z-10"
                 >
+                    {/* Poster Reveal */}
                     <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring" }}
-                        className="mb-6 flex justify-center"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="w-full max-w-xs aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative group"
                     >
-                        {(session.streak || 0) >= 5 ?
-                            <Sparkles className="w-20 h-20 text-yellow-400" strokeWidth={1.5} /> :
-                            <config.Icon className="w-20 h-20 text-white/80" strokeWidth={1.5} />
-                        }
+                        {session?.posterPath ? (
+                            <img
+                                src={`https://image.tmdb.org/t/p/w780${session.posterPath}`}
+                                alt="Movie Poster"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                                <Film className="w-16 h-16 text-neutral-700" />
+                            </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
                     </motion.div>
 
-                    <h2 className={`text-3xl font-bold mb-4 bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}>
-                        Game Over!
-                    </h2>
+                    {/* Stats & Actions */}
+                    <div className="flex-1 text-center md:text-left space-y-6">
+                        <div>
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="mb-4 inline-block"
+                            >
+                                <config.Icon className="w-16 h-16 text-white/50 mx-auto md:mx-0" strokeWidth={1} />
+                            </motion.div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="glass rounded-xl p-4">
-                            <p className="text-neutral-400 text-sm">Streak</p>
-                            <p className="text-3xl font-bold text-white">{session.streak || 0}</p>
+                            <h2 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+                                Game Over
+                            </h2>
+                            <p className="text-neutral-400 text-lg">
+                                The movie was <span className="text-white font-bold">{session.correctAnswer}</span>
+                            </p>
                         </div>
-                        <div className="glass rounded-xl p-4">
-                            <p className="text-neutral-400 text-sm">Score</p>
-                            <p className="text-3xl font-bold text-white">{session.totalScore || session.finalScore || 0}</p>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
+                                <p className="text-neutral-500 text-xs uppercase tracking-widest mb-1">Total Score</p>
+                                <p className="text-3xl font-bold text-white">{session.totalScore || 0}</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
+                                <p className="text-neutral-500 text-xs uppercase tracking-widest mb-1">Max Streak</p>
+                                <div className="flex items-center gap-2 justify-center md:justify-start">
+                                    <p className="text-3xl font-bold text-white">{session.streak || 0}</p>
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    {session.correctAnswer && (
-                        <p className="text-neutral-400 mb-6">
-                            The movie was: <span className="text-white font-semibold">{session.correctAnswer}</span>
-                        </p>
-                    )}
+                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                            <button
+                                onClick={() => {
+                                    resetGame();
+                                    setShowModeSelect(true);
+                                    setCurrentStage(1);
+                                    setLives(3);
+                                }}
+                                className="btn-primary flex-1 h-12 text-lg"
+                            >
+                                Play Again
+                            </button>
+                            <button
+                                onClick={() => setShowShareCard(true)}
+                                className="btn-secondary flex-1 h-12"
+                            >
+                                Share Result
+                            </button>
+                        </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <button
-                            onClick={() => setShowShareCard(true)}
-                            className="btn-secondary flex items-center justify-center gap-2"
-                        >
-                            📤 Share Results
-                        </button>
-                        <button
-                            onClick={() => {
-                                resetGame();
-                                setShowModeSelect(true);
-                                setCurrentStage(1);
-                                setLives(3);
-                            }}
-                            className="btn-primary"
-                        >
-                            Play Again
-                        </button>
-                        <Link href="/" className="btn-secondary">
-                            Change Category
+                        <Link href="/" className="inline-block text-neutral-500 hover:text-white transition-colors text-sm mt-2">
+                            Return to Menu
                         </Link>
                     </div>
                 </motion.div>
@@ -636,9 +664,9 @@ export default function PlayPage({ params }) {
                                         initial={{ rotate: -10, scale: 0 }}
                                         animate={{ rotate: 0, scale: 1 }}
                                         transition={{ type: "spring", damping: 12 }}
-                                        className="text-8xl mb-6 relative z-10 drop-shadow-2xl"
+                                        className="mb-4 relative z-10 drop-shadow-2xl flex justify-center"
                                     >
-                                        <PartyPopper className="w-24 h-24 text-yellow-400" strokeWidth={1.5} />
+                                        <PartyPopper className="w-20 h-20 text-yellow-400 mx-auto" strokeWidth={1.5} />
                                     </motion.div>
                                     <p className="text-3xl font-bold text-white tracking-tight mb-2">That's right!</p>
                                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-sm">

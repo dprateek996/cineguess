@@ -57,6 +57,27 @@ export function validateGuess(guess, actualTitle) {
         return 'CORRECT'
     }
 
+    // Check against "Core Title" (part before colon/hyphen)
+    // Example: "Lagaan: Once Upon a Time..." -> "Lagaan" should be correct
+    const coreTitle = actualTitle.split(/[:|-]/)[0]
+    const normalizedCoreTitle = removeAccents(normalizeTitle(coreTitle))
+
+    if (normalizedGuess === normalizedCoreTitle && normalizedGuess.length >= 3) {
+        return 'CORRECT'
+    }
+
+    // Check if guess is a significant prefix of the title
+    // Example: "Mission Impossible" for "Mission: Impossible - Fallout"
+    // But prevent short common words like "The" from matching "The Godfather"
+    if (normalizedTitle.startsWith(normalizedGuess) && normalizedGuess.length >= 4) {
+        // Ensure it's not just a partial word match (like "Bat" matching "Batman")
+        // Check if the next char in title is a space or specific boundary, or if it's the whole core title
+        const nextChar = normalizedTitle[normalizedGuess.length]
+        if (!nextChar || nextChar === ' ') {
+            return 'CORRECT'
+        }
+    }
+
     // Calculate distance
     const distance = levenshteinDistance(normalizedGuess, normalizedTitle)
     const maxLength = Math.max(normalizedGuess.length, normalizedTitle.length)
@@ -70,14 +91,12 @@ export function validateGuess(guess, actualTitle) {
         return 'NEAR_MISS'
     }
 
-    // Additional check for substring matches
+    // Additional check for substring matches (relaxed)
     if (
-        normalizedTitle.includes(normalizedGuess) ||
-        normalizedGuess.includes(normalizedTitle)
+        normalizedTitle.includes(normalizedGuess) && normalizedGuess.length >= 4
     ) {
-        if (similarity >= 0.6) {
-            return 'NEAR_MISS'
-        }
+        // If it matches a significant part of the title, give a hint
+        return 'NEAR_MISS'
     }
 
     return 'WRONG'

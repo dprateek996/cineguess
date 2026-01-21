@@ -121,6 +121,18 @@ export default function GameIntro({ onComplete, industry }) {
                                 }}
                             />
                         </motion.div>
+
+                        {/* Skip Button */}
+                        <motion.button
+                            onClick={handleVideoEnd}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.5 }}
+                            whileHover={{ opacity: 1, scale: 1.05 }}
+                            transition={{ delay: 1 }}
+                            className="absolute bottom-6 right-6 text-[10px] uppercase tracking-widest text-white/50 border border-white/10 px-3 py-1 rounded-full hover:bg-white/10 transition-colors"
+                        >
+                            Skip Intro
+                        </motion.button>
                     </div>
                 </motion.div>
             )}

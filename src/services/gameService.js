@@ -48,22 +48,28 @@ function generateFallbackTrivia(movie) {
     return `This film features a critically acclaimed performance that left audiences speechless.`;
 }
 
+import { STATIC_HINTS } from '../data/static-hints'
+
 // Get stage-based clue data for current round
 // Stage 1: Blurred Poster, Stage 2: Dialogue, Stage 3: Scene (Reveal)
 function getStageData(movie, stage = 1) {
+    // Check static hints first for dialogue
+    const staticHint = STATIC_HINTS[movie.title];
+    const dialogue = movie.hints?.level2Dialogue || staticHint?.dialogue || 'A famous quote from this movie...';
+
     const stages = {
         1: {
             type: 'poster',
             data: {
                 posterPath: movie.posterPath,
-                blurAmount: 10  // Reduced blur (10px) per user request
+                blurAmount: 15
             },
             pointsMultiplier: 4,
             label: 'Blurred Poster'
         },
         2: {
             type: 'dialogue',
-            data: { dialogue: movie.hints?.level2Dialogue || 'A memorable line from this film...' },
+            data: { dialogue: dialogue },
             pointsMultiplier: 2,
             label: 'Famous Dialogue'
         },
@@ -112,17 +118,29 @@ function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic'
 }
 
 // Get a random movie, avoiding already played ones
-async function getNextMovie(industry, playedMovieIds = []) {
+// Supports progressive difficulty based on 'round'
+async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round = 1) {
+    const MAX_RETRIES = 5;
+
     const where = {
         industry,
         id: { notIn: playedMovieIds },
+        // SAFEGUARD: Only select movies with valid image paths
+        posterPath: { not: '' },
+        backdropPath: { not: '' },
     }
 
     const count = await prisma.movie.count({ where })
 
     if (count === 0) {
-        // If all movies played, allow repeats
-        const totalCount = await prisma.movie.count({ where: { industry } })
+        // If all movies played, allow repeats but still require valid images
+        const totalCount = await prisma.movie.count({
+            where: {
+                industry,
+                posterPath: { not: '' },
+                backdropPath: { not: '' },
+            }
+        })
         if (totalCount === 0) {
             // First time seeding synchronously
             console.log(`No movies found for ${industry}. starting initial seed...`);
@@ -134,9 +152,20 @@ async function getNextMovie(industry, playedMovieIds = []) {
             import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
         }
 
-        const skip = Math.floor(Math.random() * (await prisma.movie.count({ where: { industry } })))
+        const validCount = await prisma.movie.count({
+            where: {
+                industry,
+                posterPath: { not: '' },
+                backdropPath: { not: '' },
+            }
+        })
+        const skip = Math.floor(Math.random() * validCount)
         return prisma.movie.findFirst({
-            where: { industry },
+            where: {
+                industry,
+                posterPath: { not: '' },
+                backdropPath: { not: '' },
+            },
             skip,
             include: { hints: true },
         })
@@ -148,18 +177,58 @@ async function getNextMovie(industry, playedMovieIds = []) {
         import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
     }
 
-    const skip = Math.floor(Math.random() * count)
-    return prisma.movie.findFirst({
-        where,
-        skip,
-        include: { hints: true },
-    })
+    let movie;
+
+    // DIFFICULTY LOGIC
+    // Rounds 1-5: Easy (Pick from Top 30 Popular)
+    // Rounds 6-15: Medium (Pick from Top 100 Popular)
+    // Rounds 15+: Hard/Random (Any unplayed)
+    let takePool = 0;
+    if (round <= 5) takePool = 30;
+    else if (round <= 15) takePool = 100;
+
+    if (takePool > 0) {
+        // Fetch candidates sorted by popularity
+        const candidates = await prisma.movie.findMany({
+            where,
+            orderBy: { popularity: 'desc' },
+            take: takePool,
+            include: { hints: true }
+        });
+
+        if (candidates.length > 0) {
+            // Pick a random movie from the popular pool
+            const randomIndex = Math.floor(Math.random() * candidates.length);
+            movie = candidates[randomIndex];
+        }
+    }
+
+    // Fallback: If no candidate found (e.g. pool is empty) or mode is Random
+    if (!movie) {
+        const skip = Math.floor(Math.random() * count)
+        movie = await prisma.movie.findFirst({
+            where,
+            skip,
+            include: { hints: true },
+        })
+    }
+
+    // ADDITIONAL SAFEGUARD: Verify the selected movie has valid images
+    if (movie && (!movie.posterPath || !movie.backdropPath)) {
+        console.warn(`Movie ${movie.title} has missing images, retrying...`);
+        if (retryCount < MAX_RETRIES) {
+            return getNextMovie(industry, [...playedMovieIds, movie.id], retryCount + 1, round);
+        }
+    }
+
+    return movie
 }
 
 // Initialize a new game session
 export async function initializeGameSession(industry, userId, mode = 'classic') {
     try {
-        const movie = await getNextMovie(industry, [])
+        // Start at Round 1 (Easy Difficulty)
+        const movie = await getNextMovie(industry, [], 0, 1)
 
         if (!movie) {
             throw new Error(`No movies available for ${industry}`)
@@ -244,8 +313,8 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
             const newRound = currentRound + 1
             const playedMovieIds = session.guesses
 
-            // Get next movie
-            const nextMovie = await getNextMovie(session.movie.industry, playedMovieIds)
+            // Get next movie (Pass newRound for difficulty scaling)
+            const nextMovie = await getNextMovie(session.movie.industry, playedMovieIds, 0, newRound)
             const nextDifficulty = getDifficultyConfig(newRound, mode)
             const nextHints = getHintsForRound(nextMovie, nextDifficulty.maxHints)
 

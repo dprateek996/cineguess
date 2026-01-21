@@ -11,9 +11,14 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "hydrate": "node scripts/hydrate.js",
+    "hydrate:elite": "node scripts/hydrate-elite.mjs",
     "select-daily": "node scripts/select-daily.js",
     "seed": "node scripts/seed.mjs",
-    "seed:all": "node scripts/seed.mjs --all --count=15"
+    "seed:all": "node scripts/seed.mjs --all --count=15",
+    "db:cleanup": "node scripts/fix-broken-images.mjs --delete",
+    "db:export": "node scripts/export-gold.mjs",
+    "db:seed-gold": "node scripts/seed-gold.mjs",
+    "db:hydrate-all": "node scripts/hydrate-all.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

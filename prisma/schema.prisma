@@ -51,6 +51,8 @@ model Movie {
   hints         Hint?
   
   // Game metrics for difficulty scaling
+  popularity      Float @default(0.0) // TMDB popularity score
+  voteCount       Int   @default(0)   // TMDB vote count (validates fame)
   globalSolveRate Float @default(0.0) // Correct / Total Attempts
   totalPlays      Int   @default(0)
   

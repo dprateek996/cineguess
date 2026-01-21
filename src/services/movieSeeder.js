@@ -16,12 +16,26 @@ async function generateHints(movie) {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const prompt = `Generate 3 hints for the movie "${movie.title}" (${new Date(movie.release_date).getFullYear()}).
         Format as JSON with keys: level2Dialogue (famous quote), level3Emoji (3 emojis representing plot), level4Trivia (interesting fact).
         Do not include the movie title in the hints.`;
 
-        const result = await model.generateContent(prompt);
+        // Retry logic for 429 Rate Limits
+        const generateWithRetry = async (retries = 3, delay = 5000) => {
+            try {
+                return await model.generateContent(prompt);
+            } catch (error) {
+                if (error.status === 429 && retries > 0) {
+                    console.log(`    ⏳ Rate limit hit, waiting ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return generateWithRetry(retries - 1, delay * 2);
+                }
+                throw error;
+            }
+        };
+
+        const result = await generateWithRetry(3, 10000);
         const response = await result.response;
         const text = response.text();
 
@@ -32,9 +46,9 @@ async function generateHints(movie) {
         }
         return JSON.parse(text);
     } catch (error) {
-        console.error("Gemini hint generation failed:", error);
+        console.error("Gemini hint generation failed:", error.message);
         return {
-            level2Dialogue: "A memorable line from this film...",
+            level2Dialogue: "", // Leave empty so we can detect and clean it later
             level3Emoji: "🎬 🍿 🎥",
             level4Trivia: `Released in ${new Date(movie.release_date).getFullYear()}, this movie is well known.`
         };

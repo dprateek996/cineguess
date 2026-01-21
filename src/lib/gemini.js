@@ -21,7 +21,7 @@ STRICT RULES:
 
 Return in this EXACT JSON format:
 {
-  "dialogue": "A famous quote from the movie (without character name)",
+  "dialogue": "The MOST ICONIC, INSTANTLY RECOGNIZABLE quote that fans would immediately associate with this film (no character names)",
   "emoji": "3-4 emojis that represent the plot",
   "trivia": "An obscure fact about production/filming",
   "location": "A key filming location or setting in the movie"

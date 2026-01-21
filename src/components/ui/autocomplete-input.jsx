@@ -29,26 +29,11 @@ export default function AutocompleteInput({
     const debounceRef = useRef(null);
     const containerRef = useRef(null);
 
-    // Fetch suggestions from API
+    // Fetch suggestions from API - DISABLED (user requested no suggestions)
     const fetchSuggestions = useCallback(async (query) => {
-        if (!query || query.length < 2) {
-            setSuggestions([]);
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const res = await fetch(`/api/movies/search?q=${encodeURIComponent(query)}&industry=${industry}`);
-            if (res.ok) {
-                const data = await res.json();
-                setSuggestions(data.movies || []);
-                setIsOpen(true);
-            }
-        } catch (err) {
-            console.error("Autocomplete fetch error:", err);
-        } finally {
-            setIsLoading(false);
-        }
+        // Suggestions disabled - always clear
+        setSuggestions([]);
+        return;
     }, [industry]);
 
     // Debounced search
