@@ -1,7 +1,3 @@
-// CineGuess Database Schema
-// This schema supports Bollywood, Hollywood, and Global movie categories
-// with AI-generated hints and comprehensive game session tracking
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,178 +6,103 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================================
-// ENUMS
-// ============================================================
-
-enum Industry {
-  HOLLYWOOD
-  BOLLYWOOD
-  GLOBAL      // International/Regional hits
-  ANIME       // Future expansion
-}
-
-enum GameStatus {
-  IN_PROGRESS
-  WON
-  LOST
-}
-
-enum Difficulty {
-  EASY
-  MEDIUM
-  HARD
-}
-
-// ============================================================
-// MOVIE LIBRARY
-// ============================================================
-
 model Movie {
-  id            String   @id @default(cuid())
-  tmdbId        Int      @unique
-  title         String
-  releaseYear   Int
-  industry      Industry @default(HOLLYWOOD)
-  genres        String[] // Array of genre names
-  posterPath    String
-  backdropPath  String
-  
-  // Content enrichment
-  hints         Hint?
-  
-  // Game metrics for difficulty scaling
-  popularity      Float @default(0.0) // TMDB popularity score
-  voteCount       Int   @default(0)   // TMDB vote count (validates fame)
-  globalSolveRate Float @default(0.0) // Correct / Total Attempts
-  totalPlays      Int   @default(0)
-  
-  // Relations
-  sessions      GameSession[]
-  dailyGames    DailyGame[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id              String        @id @default(cuid())
+  tmdbId          Int           @unique
+  title           String
+  releaseYear     Int
+  industry        Industry      @default(HOLLYWOOD)
+  genres          String[]
+  posterPath      String
+  backdropPath    String
+  globalSolveRate Float         @default(0.0)
+  totalPlays      Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  popularity      Float         @default(0.0)
+  voteCount       Int           @default(0)
+  dailyGames      DailyGame[]
+  sessions        GameSession[]
+  hints           Hint?
+
   @@index([title])
   @@index([industry])
   @@index([globalSolveRate])
 }
 
-// ============================================================
-// AI-GENERATED HINTS (4 LEVELS)
-// ============================================================
-
 model Hint {
-  id        String @id @default(cuid())
-  movieId   String @unique
-  movie     Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  
-  // Level-based hints (progressive difficulty)
-  level1Blur     Int    @default(45) // Initial blur amount in pixels
-  level2Dialogue String // Iconic Quote
-  level3Emoji    String // 3-emoji plot sequence
-  level4Trivia   String // Obscure fact
-  
-  // AI metadata for debugging/improvement
-  aiMetadata     Json?  // Store raw Gemini response
+  id             String   @id @default(cuid())
+  movieId        String   @unique
+  level1Blur     Int      @default(45)
+  level2Dialogue String
+  level3Emoji    String
+  level4Trivia   String
+  aiMetadata     Json?
   generatedAt    DateTime @default(now())
-  
+  movie          Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
   @@index([movieId])
 }
 
-// ============================================================
-// GAME SESSION TRACKING
-// ============================================================
-
 model GameSession {
-  id           String    @id @default(cuid())
-  userId       String? // Optional for guest play
-  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id           String     @id @default(cuid())
+  userId       String?
   movieId      String
-  movie        Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  
-  // Progress tracking
-  currentLevel Int       @default(1) // 1 to 4
-  attempts     Int       @default(0)
-  guesses      String[]  // Store history of user's wrong guesses
-  
-  // Game state
+  currentLevel Int        @default(1)
+  attempts     Int        @default(0)
+  guesses      String[]
   status       GameStatus @default(IN_PROGRESS)
-  isCompleted  Boolean   @default(false)
-  isWon        Boolean   @default(false)
-  score        Int       @default(0)
-  
-  // Time tracking
-  startTime    DateTime  @default(now())
+  isCompleted  Boolean    @default(false)
+  isWon        Boolean    @default(false)
+  score        Int        @default(0)
+  startTime    DateTime   @default(now())
   endTime      DateTime?
-  
-  // Mode tracking
-  gameMode     String    @default("infinite") // "daily", "infinite", "bollywood", "hollywood"
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  
+  gameMode     String     @default("infinite")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  movie        Movie      @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user         User?      @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([movieId])
   @@index([status])
   @@index([createdAt])
 }
 
-// ============================================================
-// DAILY CHALLENGES
-// ============================================================
-
 model DailyGame {
-  id        String   @id @default(cuid())
-  date      DateTime @default(now()) @db.Date
-  movieId   String
-  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  industry  Industry // Which category this daily is for
-  
-  // Metrics
-  totalAttempts Int @default(0)
-  totalWins     Int @default(0)
-  
-  createdAt DateTime @default(now())
-  
+  id            String   @id @default(cuid())
+  date          DateTime @default(now()) @db.Date
+  movieId       String
+  industry      Industry
+  totalAttempts Int      @default(0)
+  totalWins     Int      @default(0)
+  createdAt     DateTime @default(now())
+  movie         Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([date, industry])
   @@index([date])
   @@index([industry])
-  @@unique([date, industry]) // One daily per industry per day
 }
-
-// ============================================================
-// USER & AUTHENTICATION
-// ============================================================
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  
-  // Game stats
-  totalGamesPlayed Int @default(0)
-  totalWins        Int @default(0)
-  currentStreak    Int @default(0)
-  longestStreak    Int @default(0)
-  totalScore       Int @default(0)
-  
-  // Relations
-  accounts      Account[]
-  sessions      Session[]
-  gameSessions  GameSession[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id               String        @id @default(cuid())
+  name             String?
+  email            String?       @unique
+  emailVerified    DateTime?
+  image            String?
+  totalGamesPlayed Int           @default(0)
+  totalWins        Int           @default(0)
+  currentStreak    Int           @default(0)
+  longestStreak    Int           @default(0)
+  totalScore       Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  accounts         Account[]
+  gameSessions     GameSession[]
+  sessions         Session[]
+
   @@index([email])
 }
-
-// ============================================================
-// NEXTAUTH MODELS
-// ============================================================
 
 model Account {
   id                String  @id @default(cuid())
@@ -189,15 +110,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -219,4 +139,23 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+enum Industry {
+  HOLLYWOOD
+  BOLLYWOOD
+  GLOBAL
+  ANIME
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  WON
+  LOST
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
 }
