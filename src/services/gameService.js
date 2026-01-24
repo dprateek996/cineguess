@@ -50,7 +50,7 @@ function generateFallbackTrivia(movie) {
     return `This film features a critically acclaimed performance that left audiences speechless.`;
 }
 
-import { STATIC_HINTS } from '../data/static-hints'
+
 
 // Get stage-based clue data for current round
 // Stage 1: Blurred Poster, Stage 2: Dialogue, Stage 3: Scene (Reveal)
