@@ -40,7 +40,7 @@ export default function ShareCard({
 
     const generateShareText = () => {
         const grid = generateStageGrid();
-        const modeLabel = mode === "daily" ? "Daily Challenge" : "CineGuess";
+        const modeLabel = mode === "daily" ? "Daily Challenge" : "CineQuest";
 
         return `${modeLabel} ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 ${industry} Mode
@@ -49,7 +49,7 @@ ${grid}
 
 ${guessedAtStage > totalStages ? "Missed it! 🎬" : `Guessed in ${guessedAtStage} ${guessedAtStage === 1 ? 'try' : 'tries'} 🎯`}
 
-Play at cineguess.vercel.app`;
+Play at cinequest.vercel.app`;
     };
 
     const handleCopy = async () => {
@@ -75,7 +75,7 @@ Play at cineguess.vercel.app`;
             });
 
             const link = document.createElement("a");
-            link.download = `cineguess-result-${Date.now()}.png`;
+            link.download = `cinequest-result-${Date.now()}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
         } catch (err) {
@@ -113,7 +113,7 @@ Play at cineguess.vercel.app`;
                         {/* Header */}
                         <div className="flex justify-between items-start mb-auto">
                             <div>
-                                <h3 className="text-white font-bold text-xl tracking-tight">CineGuess</h3>
+                                <h3 className="text-white font-bold text-xl tracking-tight">CineQuest</h3>
                                 <p className="text-neutral-500 text-xs font-medium uppercase tracking-widest mt-1">
                                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                 </p>

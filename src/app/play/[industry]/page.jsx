@@ -56,7 +56,7 @@ export default function PlayPage({ params }) {
     // Check if intro was already shown in this session
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
-            const introShown = sessionStorage.getItem(`cineguess_intro_${industry}`);
+            const introShown = sessionStorage.getItem(`cinequest_intro_${industry}`);
             return !introShown; // Show intro if NOT already shown
         }
         return true;
@@ -69,7 +69,7 @@ export default function PlayPage({ params }) {
     // Show mode select only if intro is skipped (already shown)
     const [showModeSelect, setShowModeSelect] = useState(() => {
         if (typeof window !== 'undefined') {
-            const introShown = sessionStorage.getItem(`cineguess_intro_${industry}`);
+            const introShown = sessionStorage.getItem(`cinequest_intro_${industry}`);
             return !!introShown; // Show mode select if intro was already shown
         }
         return false;
@@ -176,14 +176,14 @@ export default function PlayPage({ params }) {
     };
 
     useEffect(() => {
-        const savedHandle = localStorage.getItem("cineguess_handle");
+        const savedHandle = localStorage.getItem("cinequest_handle");
         if (savedHandle) setUserHandle(savedHandle);
     }, []);
 
     const startGame = useCallback((mode) => {
         setGameMode(mode);
         setShowModeSelect(false);
-        const savedHandle = localStorage.getItem("cineguess_handle");
+        const savedHandle = localStorage.getItem("cinequest_handle");
         if (!savedHandle) {
             setShowHandleModal(true);
         } else {
@@ -195,7 +195,7 @@ export default function PlayPage({ params }) {
 
     const handleIntroComplete = useCallback(() => {
         // Mark intro as shown for this industry in current session
-        sessionStorage.setItem(`cineguess_intro_${industry}`, 'true');
+        sessionStorage.setItem(`cinequest_intro_${industry}`, 'true');
         setShowIntro(false);
         setShowModeSelect(true);
     }, [industry]);
@@ -547,7 +547,7 @@ export default function PlayPage({ params }) {
                     const image = canvas.toDataURL('image/png');
                     const link = document.createElement('a');
                     link.href = image;
-                    link.download = `cineguess-stats-${Date.now()}.png`;
+                    link.download = `cinequest-stats-${Date.now()}.png`;
                     link.click();
                 } catch (error) {
                     console.error('Failed to capture card:', error);
@@ -556,10 +556,10 @@ export default function PlayPage({ params }) {
             setIsDownloading(false);
         };
 
-        const shareText = `I just identified "${movieTitle}"! 🎞️✨\n\nScore: ${score} pts\nRank: ${rating} 👑\n\nCan you beat my streak? #CineGuess`;
+        const shareText = `I just identified "${movieTitle}"! 🎞️✨\n\nScore: ${score} pts\nRank: ${rating} 👑\n\nCan you beat my streak? #CineQuest`;
 
         // Construct the viral share URL
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cineguess.com';
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cinequest.com';
         const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(session?.posterPath || '')}&mode=Standard`;
         const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
 

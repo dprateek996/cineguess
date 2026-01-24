@@ -42,7 +42,7 @@ export default function DailyChallengePage() {
         const today = new Date().toISOString().split('T')[0];
         const played = {};
         categories.forEach(cat => {
-            const key = `cineguess_daily_${cat.id}_${today}`;
+            const key = `cinequest_daily_${cat.id}_${today}`;
             played[cat.id] = localStorage.getItem(key) === 'true';
         });
         setPlayedToday(played);

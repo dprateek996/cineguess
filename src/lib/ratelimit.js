@@ -6,7 +6,7 @@ export const ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
     limiter: Ratelimit.slidingWindow(5, '30 s'),
     analytics: true,
-    prefix: '@cineguess/ratelimit',
+    prefix: '@cinequest/ratelimit',
 })
 
 // Helper function to check rate limit

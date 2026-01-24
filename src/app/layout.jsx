@@ -12,11 +12,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-    title: "CineGuess - Movie Guessing Game",
+    title: "CineQuest - Movie Guessing Game",
     description: "Guess movies from blurred posters and AI-generated hints. Test your cinema knowledge with Bollywood, Hollywood, and Anime challenges!",
     keywords: ["movie", "guessing game", "bollywood", "hollywood", "anime", "trivia"],
     openGraph: {
-        title: "CineGuess - Movie Guessing Game",
+        title: "CineQuest - Movie Guessing Game",
         description: "Can you guess the movie from blurred posters?",
         type: "website",
     },

@@ -58,7 +58,7 @@ export async function GET(request) {
                                 marginBottom: 10,
                                 fontWeight: 700
                             }}>
-                                CineGuess {mode === 'Daily' ? 'Daily' : ''}
+                                CineQuest {mode === 'Daily' ? 'Daily' : ''}
                             </div>
                             <div style={{
                                 fontSize: 64,
@@ -91,7 +91,7 @@ export async function GET(request) {
                                 fontWeight: 700,
                                 width: 'fit-content'
                             }}>
-                                Play Now at CineGuess.com
+                                Play Now at CineQuest.com
                             </div>
                         </div>
                     </div>

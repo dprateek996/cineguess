@@ -7,7 +7,7 @@ export default function HandleModal({ isOpen, onSubmit }) {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        const savedHandle = localStorage.getItem("cineguess_handle");
+        const savedHandle = localStorage.getItem("cinequest_handle");
         if (savedHandle) {
             onSubmit(savedHandle);
         }
@@ -27,7 +27,7 @@ export default function HandleModal({ isOpen, onSubmit }) {
             return;
         }
 
-        localStorage.setItem("cineguess_handle", cleanHandle);
+        localStorage.setItem("cinequest_handle", cleanHandle);
         onSubmit(cleanHandle);
     };
 
@@ -75,7 +75,7 @@ export default function HandleModal({ isOpen, onSubmit }) {
                                         className="text-white text-2xl font-display font-semibold tracking-tight"
                                         style={{ textShadow: "0 2px 10px rgba(0,0,0,0.3)" }}
                                     >
-                                        CineGuess
+                                        CineQuest
                                     </h2>
                                 </div>
                                 {/* Perforated circles */}

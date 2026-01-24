@@ -41,7 +41,7 @@ export default function DailyGamePage({ params }) {
     // Check if intro was already shown in this session
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
-            const introShown = sessionStorage.getItem(`cineguess_daily_intro_${industry}`);
+            const introShown = sessionStorage.getItem(`cinequest_daily_intro_${industry}`);
             return !introShown; // Show intro if NOT already shown
         }
         return true;
@@ -63,7 +63,7 @@ export default function DailyGamePage({ params }) {
 
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
-        const key = `cineguess_daily_${industry}_${today}`;
+        const key = `cinequest_daily_${industry}_${today}`;
         if (localStorage.getItem(key) === 'true') {
             setAlreadyPlayed(true);
         }
@@ -91,10 +91,10 @@ export default function DailyGamePage({ params }) {
 
     const markAsPlayed = useCallback((didWin) => {
         const today = new Date().toISOString().split('T')[0];
-        const key = `cineguess_daily_${industry}_${today}`;
+        const key = `cinequest_daily_${industry}_${today}`;
         localStorage.setItem(key, 'true');
 
-        const statsKey = `cineguess_daily_stats_${industry}`;
+        const statsKey = `cinequest_daily_stats_${industry}`;
         const stats = JSON.parse(localStorage.getItem(statsKey) || '{"played":0,"won":0,"streak":0}');
         stats.played++;
         if (didWin) {
@@ -213,7 +213,7 @@ export default function DailyGamePage({ params }) {
 
     if (showIntro) {
         return <GameIntro onComplete={() => {
-            sessionStorage.setItem(`cineguess_daily_intro_${industry}`, 'true');
+            sessionStorage.setItem(`cinequest_daily_intro_${industry}`, 'true');
             setShowIntro(false);
         }} industry={industry} />;
     }
@@ -329,7 +329,7 @@ export default function DailyGamePage({ params }) {
                     const image = canvas.toDataURL('image/png');
                     const link = document.createElement('a');
                     link.href = image;
-                    link.download = `cineguess-daily-${Date.now()}.png`;
+                    link.download = `cinequest-daily-${Date.now()}.png`;
                     link.click();
                 } catch (error) {
                     console.error('Failed to capture card:', error);
@@ -338,10 +338,10 @@ export default function DailyGamePage({ params }) {
             setIsDownloading(false);
         };
 
-        const shareText = `I just solved the Daily ${config.name} Challenge! 🎞️✨\n\nMovie: ${movieTitle}\nScore: ${score} pts\nRank: ${rating} 👑\n\n#CineGuessDaily`;
+        const shareText = `I just solved the Daily ${config.name} Challenge! 🎞️✨\n\nMovie: ${movieTitle}\nScore: ${score} pts\nRank: ${rating} 👑\n\n#CineQuestDaily`;
 
         // Construct the viral share URL
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cineguess.com';
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cinequest.com';
         const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(dailyData.movie?.posterPath || '')}&mode=Daily`;
         const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
 

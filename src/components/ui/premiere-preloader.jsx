@@ -91,7 +91,7 @@ export default function PremierePreloader({ onComplete }) {
 
                                     {/* Title */}
                                     <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-b from-white via-neutral-200 to-neutral-500 bg-clip-text text-transparent">
-                                        CineGuess
+                                        CineQuest
                                     </h1>
 
                                     <p className="text-neutral-500 text-lg mb-10 tracking-wide">

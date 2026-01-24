@@ -10,7 +10,7 @@ export const geminiModel = genAI.getGenerativeModel({
 
 // Structured prompt for generating movie hints
 export const generateHintsPrompt = (movieTitle, releaseYear, industry) => {
-  return `You are a movie hint generator for a guessing game called CineGuess.
+  return `You are a movie hint generator for a guessing game called CineQuest.
   
 Generate exactly 4 hints for the movie "${movieTitle}" (${releaseYear}) from ${industry} cinema.
 

@@ -39,7 +39,7 @@ export function useSound() {
 
     // Load mute preference from localStorage
     useEffect(() => {
-        const savedMute = localStorage.getItem("cineguess_muted");
+        const savedMute = localStorage.getItem("cinequest_muted");
         if (savedMute !== null) {
             setIsMuted(savedMute === "true");
         }
@@ -106,7 +106,7 @@ export function useSound() {
     const toggleMute = useCallback(() => {
         setIsMuted((prev) => {
             const newValue = !prev;
-            localStorage.setItem("cineguess_muted", String(newValue));
+            localStorage.setItem("cinequest_muted", String(newValue));
             return newValue;
         });
     }, []);

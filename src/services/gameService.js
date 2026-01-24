@@ -2,7 +2,7 @@ import prisma from '@/lib/prisma'
 import { validateGuess, calculateSimilarity } from './validationService'
 
 /**
- * CineGuess Game Service - Endless & Rapid Fire Modes
+ * CineQuest Game Service - Endless & Rapid Fire Modes
  * 
  * Classic Endless: Progressive difficulty, game over on wrong guess
  * Rapid Fire: Timer-based, 3 lives, bonus for speed

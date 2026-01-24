@@ -4,7 +4,7 @@ import { Icons } from '@/components/Icons';
 export async function generateMetadata({ searchParams }) {
     const { title, score, rank, poster, mode } = searchParams;
 
-    const ogUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL || 'https://cineguess.com'}/api/og`);
+    const ogUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL || 'https://cinequest.com'}/api/og`);
     if (title) ogUrl.searchParams.set('title', title);
     if (score) ogUrl.searchParams.set('score', score);
     if (rank) ogUrl.searchParams.set('rank', rank);
@@ -12,10 +12,10 @@ export async function generateMetadata({ searchParams }) {
     if (mode) ogUrl.searchParams.set('mode', mode);
 
     return {
-        title: `Can you beat my score on CineGuess?`,
+        title: `Can you beat my score on CineQuest?`,
         description: `I scored ${score} pts and got the rank of ${rank} guessing ${title}. Play now!`,
         openGraph: {
-            title: `I identified ${title} on CineGuess!`,
+            title: `I identified ${title} on CineQuest!`,
             description: `Score: ${score} | Rank: ${rank}`,
             images: [
                 {
@@ -27,7 +27,7 @@ export async function generateMetadata({ searchParams }) {
         },
         twitter: {
             card: 'summary_large_image',
-            title: `I identified ${title} on CineGuess!`,
+            title: `I identified ${title} on CineQuest!`,
             description: `Score: ${score} | Rank: ${rank}`,
             images: [ogUrl.toString()],
         },
@@ -50,7 +50,7 @@ export default function SharePage({ searchParams }) {
                     </div>
                 </div>
 
-                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">CineGuess Challenge</h1>
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">CineQuest Challenge</h1>
                 <p className="text-zinc-400 mb-8 text-sm">
                     A player just identified <span className="text-white font-bold">"{title}"</span> and scored <span className="text-amber-400 font-bold">{score}</span> points!
                 </p>
