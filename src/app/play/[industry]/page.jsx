@@ -52,11 +52,29 @@ export default function PlayPage({ params }) {
     const { isMuted, toggleMute, playCorrect, playWrong, playTransition, playStart, playGameOver } = useSound();
     const [guess, setGuess] = useState("");
     const [shakeInput, setShakeInput] = useState(false);
-    const [showIntro, setShowIntro] = useState(true);
+
+    // Check if intro was already shown in this session
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const introShown = sessionStorage.getItem(`cineguess_intro_${industry}`);
+            return !introShown; // Show intro if NOT already shown
+        }
+        return true;
+    });
+
     const [showHandleModal, setShowHandleModal] = useState(false);
     const [userHandle, setUserHandle] = useState(null);
     const [gameMode, setGameMode] = useState('classic');
-    const [showModeSelect, setShowModeSelect] = useState(false);
+
+    // Show mode select only if intro is skipped (already shown)
+    const [showModeSelect, setShowModeSelect] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const introShown = sessionStorage.getItem(`cineguess_intro_${industry}`);
+            return !!introShown; // Show mode select if intro was already shown
+        }
+        return false;
+    });
+
     const [isDownloading, setIsDownloading] = useState(false);
     const [currentStage, setCurrentStage] = useState(1);
     const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
@@ -176,9 +194,11 @@ export default function PlayPage({ params }) {
     }, [industry, initGame]);
 
     const handleIntroComplete = useCallback(() => {
+        // Mark intro as shown for this industry in current session
+        sessionStorage.setItem(`cineguess_intro_${industry}`, 'true');
         setShowIntro(false);
         setShowModeSelect(true);
-    }, []);
+    }, [industry]);
 
     const handleHandleSubmit = useCallback((handle) => {
         setUserHandle(handle);
@@ -358,7 +378,7 @@ export default function PlayPage({ params }) {
                                 </div>
                                 <div className="text-left">
                                     <h3 className="text-2xl font-bold text-white">Classic Endless</h3>
-                                    <p className="text-muted-foreground text-sm mt-2 leading-relaxed">Relaxed pace. 4 stages of clues. Guess early for bonus points!</p>
+                                    <p className="text-muted-foreground text-sm mt-2 leading-relaxed">Relaxed pace. 3 stages of clues. Guess early for bonus points!</p>
                                 </div>
                                 <div className="mt-auto pt-4 flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest">
                                     <span>Play Classic</span> <Icons.Play className="w-3 h-3 fill-current" />
@@ -594,30 +614,30 @@ export default function PlayPage({ params }) {
                     {/* The Viral Stat Card */}
                     <div id="stat-card-container" className="bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
                         {/* Card Header: Rating */}
-                        <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent p-8 pb-6 text-center border-b border-white/5 relative overflow-hidden">
+                        <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent px-5 py-4 text-center border-b border-white/5 relative overflow-hidden">
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                            <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-medium mb-3">Cinephile Rating</p>
+                            <p className="text-[9px] uppercase tracking-[0.3em] text-white/40 font-medium mb-2">Cinephile Rating</p>
 
                             {/* Text Masking & Glow */}
                             <div className="relative inline-block">
-                                <h2 className="text-3xl sm:text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                                <h2 className="text-2xl sm:text-3xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
                                     {rating}
                                 </h2>
                                 <div className="absolute -inset-4 bg-amber-400/20 blur-3xl opacity-20 rounded-full" />
                             </div>
                         </motion.div>
 
-                        <div className="p-8 pt-6 flex flex-col items-center">
+                        <div className="p-5 pt-4 flex flex-col items-center">
                             {/* Movie Reveal with 3D Tilt */}
                             <motion.div
                                 variants={itemVariants}
-                                className="mb-8 relative group cursor-default"
+                                className="mb-4 relative group cursor-default"
                                 whileHover={{ scale: 1.02, rotateX: 5, rotateY: 5 }}
                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                             >
                                 <div className="absolute -inset-4 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                <div className="relative w-36 aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/20 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] group-hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] transition-shadow duration-500">
+                                <div className="relative w-28 aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/20 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] group-hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] transition-shadow duration-500">
                                     {session?.posterPath ? (
                                         <img
                                             src={`https://image.tmdb.org/t/p/w500${session.posterPath}`}
@@ -635,53 +655,41 @@ export default function PlayPage({ params }) {
                                 </div>
                             </motion.div>
 
-                            <motion.h3 variants={itemVariants} className="text-center text-xl font-bold text-white mb-1.5 leading-tight tracking-tight">
+                            <motion.h3 variants={itemVariants} className="text-center text-lg font-bold text-white mb-1 leading-tight tracking-tight">
                                 {movieTitle}
                             </motion.h3>
-                            <motion.p variants={itemVariants} className="text-[10px] text-white/30 uppercase tracking-widest mb-8 font-medium">
+                            <motion.p variants={itemVariants} className="text-[9px] text-white/30 uppercase tracking-widest mb-4 font-medium">
                                 {config.name} Collection
                             </motion.p>
 
                             {/* Guess Path Timeline - Minimalist Audit */}
-                            <motion.div variants={itemVariants} className="w-full mb-8 relative">
+                            <motion.div variants={itemVariants} className="w-full mb-4 relative">
                                 <p className="sr-only">Guess Timeline</p>
                                 {getGuessTimeline()}
                             </motion.div>
 
                             {/* Stats Grid - Ghost Containers */}
-                            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 w-full mb-8">
-                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Score</p>
-                                    <p className="text-2xl font-bold text-white tabular-nums tracking-tight">{score}</p>
+                            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 w-full mb-5">
+                                <div className="group relative rounded-xl p-3 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5 group-hover:text-white/60 transition-colors">Score</p>
+                                    <p className="text-xl font-bold text-white tabular-nums tracking-tight">{score}</p>
                                 </div>
-                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Streak</p>
-                                    <p className="text-2xl font-bold text-white tabular-nums tracking-tight">{streak}</p>
+                                <div className="group relative rounded-xl p-3 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5 group-hover:text-white/60 transition-colors">Streak</p>
+                                    <p className="text-xl font-bold text-white tabular-nums tracking-tight">{streak}</p>
                                 </div>
                             </motion.div>
 
-                            {/* Actions - Contrast Balance */}
-                            <motion.div variants={itemVariants} className="flex flex-col w-full gap-3">
+                            {/* Actions */}
+                            <motion.div variants={itemVariants} className="flex flex-col w-full gap-2">
                                 <a
                                     href={shareUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full h-12 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 hover:border-sky-500/40 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                    className="flex items-center justify-center gap-2 w-full h-11 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 hover:border-sky-500/40 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
                                 >
                                     Share Result
                                 </a>
-
-                                <button
-                                    onClick={handleDownloadCard}
-                                    disabled={isDownloading}
-                                    className="flex items-center justify-center gap-2 w-full h-12 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
-                                >
-                                    {isDownloading ? 'Capturing...' : (
-                                        <>
-                                            <Icons.Download className="w-4 h-4" /> Save Image
-                                        </>
-                                    )}
-                                </button>
 
                                 <button
                                     onClick={() => {
@@ -690,7 +698,7 @@ export default function PlayPage({ params }) {
                                         setCurrentStage(1);
                                         setLives(3);
                                     }}
-                                    className="flex items-center justify-center gap-2 w-full h-12 bg-amber-400 hover:bg-amber-300 text-black rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all shadow-[0_0_20px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.6)] hover:scale-[1.02]"
+                                    className="flex items-center justify-center gap-2 w-full h-11 bg-amber-400 hover:bg-amber-300 text-black rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all shadow-[0_0_20px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.6)] hover:scale-[1.02]"
                                 >
                                     <Icons.Play className="w-3 h-3 fill-current" /> Play Again
                                 </button>
@@ -826,7 +834,7 @@ export default function PlayPage({ params }) {
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         onSubmit={handleSubmit}
-                        className="max-w-2xl mx-auto w-full flex flex-col md:flex-row gap-3 items-stretch"
+                        className="max-w-xl mx-auto w-full flex flex-col md:flex-row gap-3 items-stretch"
                     >
                         <div className="flex-1">
                             <AutocompleteInput

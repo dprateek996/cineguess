@@ -38,7 +38,14 @@ export default function DailyGamePage({ params }) {
     const { industry } = use(params);
     const { isMuted, toggleMute, playCorrect, playWrong, playTransition, playGameOver } = useSound();
 
-    const [showIntro, setShowIntro] = useState(true);
+    // Check if intro was already shown in this session
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const introShown = sessionStorage.getItem(`cineguess_daily_intro_${industry}`);
+            return !introShown; // Show intro if NOT already shown
+        }
+        return true;
+    });
     const [loading, setLoading] = useState(true);
     const [dailyData, setDailyData] = useState(null);
     const [currentStage, setCurrentStage] = useState(1);
@@ -205,7 +212,10 @@ export default function DailyGamePage({ params }) {
     );
 
     if (showIntro) {
-        return <GameIntro onComplete={() => setShowIntro(false)} industry={industry} />;
+        return <GameIntro onComplete={() => {
+            sessionStorage.setItem(`cineguess_daily_intro_${industry}`, 'true');
+            setShowIntro(false);
+        }} industry={industry} />;
     }
 
     if (alreadyPlayed && !gameOver) {
@@ -235,27 +245,15 @@ export default function DailyGamePage({ params }) {
     }
 
     if (loading) {
-        const LoadingIcon = config.Icon;
+        // Show minimal loading while fetching daily data
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-                <AmbientBackground />
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center relative z-10 p-8 rounded-3xl bg-zinc-900/50 backdrop-blur-md border border-white/5"
-                >
-                    <motion.div
-                        className="mb-6 relative inline-block"
-                        animate={{
-                            scale: [1, 1.1, 1],
-                            rotate: [0, 5, -5, 0],
-                        }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                        <LoadingIcon className="w-16 h-16 text-primary" strokeWidth={1.5} />
-                    </motion.div>
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Loading daily challenge...</p>
-                </motion.div>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin mb-4 inline-block">
+                        <Icons.Projector className="w-8 h-8 text-primary" />
+                    </div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Loading...</p>
+                </div>
             </div>
         );
     }

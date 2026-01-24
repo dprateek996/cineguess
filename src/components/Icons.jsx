@@ -2,15 +2,11 @@
 export const Icons = {
     // --- Industries ---
 
-    // Bollywood: Popcorn Bucket
+    // Bollywood: Popcorn Bucket (simplified)
     Bollywood: (props) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
             {/* Bucket */}
             <path d="M5 8h14l-2 13H7L5 8z" />
-            {/* Bucket stripes */}
-            <path d="M8 8v13" />
-            <path d="M12 8v13" />
-            <path d="M16 8v13" />
             {/* Popcorn kernels on top */}
             <circle cx="8" cy="6" r="2" />
             <circle cx="12" cy="5" r="2.5" />
@@ -20,7 +16,6 @@ export const Icons = {
             {/* Floating kernels */}
             <circle cx="6" cy="3" r="1" />
             <circle cx="18" cy="2" r="1" />
-            <circle cx="15" cy="1" r="0.8" />
         </svg>
     ),
 

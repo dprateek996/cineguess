@@ -25,7 +25,7 @@ export async function GET(request) {
 
         // If no daily game exists and industry is provided, create one seamlessly
         if (!dailyGame && industry) {
-            console.log(`No daily game for ${industry} on ${today.toISOString()}. Creating one...`);
+            // Auto-create daily game if none exists
 
             // Count movies in this industry
             const count = await prisma.movie.count({
@@ -57,7 +57,6 @@ export async function GET(request) {
                                 }
                             }
                         });
-                        console.log(`Created daily game: ${movie.title}`);
                     } catch (createError) {
                         // Handle race condition where another request created it
                         console.error("Daily game creation race:", createError);

@@ -35,7 +35,7 @@ async function generateHints(movieTitle, releaseYear, industry) {
             console.error('Gemini hint generation failed:', error)
 
             if (error.message.includes('429')) {
-                console.log('Use Backoff: Waiting 10s before retry...')
+                // Rate limit hit - wait before retry
                 await new Promise(r => setTimeout(r, 10000));
                 retries++;
                 continue;
@@ -62,7 +62,6 @@ export async function hydrateMovie(tmdbId, industry) {
         // Check if already exists
         const exists = await movieExists(tmdbId)
         if (exists) {
-            console.log(`Movie ${tmdbId} already exists in database`)
             return await prisma.movie.findUnique({
                 where: { tmdbId },
                 include: { hints: true },
@@ -75,7 +74,6 @@ export async function hydrateMovie(tmdbId, industry) {
         const releaseYear = new Date(tmdbMovie.release_date).getFullYear()
 
         // Generate AI hints
-        console.log(`Generating hints for: ${tmdbMovie.title} (${releaseYear})`)
         const hints = await generateHints(tmdbMovie.title, releaseYear, industry)
 
         // Store in database
@@ -106,7 +104,6 @@ export async function hydrateMovie(tmdbId, industry) {
             },
         })
 
-        console.log(`Successfully hydrated movie: ${movie.title}`)
         return movie
     } catch (error) {
         console.error('Movie hydration failed:', error)

@@ -69,7 +69,12 @@ function GameLanding() {
                 animate="visible"
             >
                 {/* --- Header Section (Tightened & Polished) --- */}
-                <motion.div variants={itemVariants} className="relative z-20 mb-10 text-center md:mb-12">
+                <motion.div
+                    variants={itemVariants}
+                    className="relative z-20 mb-10 text-center md:mb-12 group/header"
+                    onMouseEnter={() => containerRef.current?.classList.add('header-hover')}
+                    onMouseLeave={() => containerRef.current?.classList.remove('header-hover')}
+                >
                     {/* Logo Icon / Brand Mark */}
                     <div className="mb-5 flex justify-center">
                         <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900/80 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
@@ -85,7 +90,7 @@ function GameLanding() {
                             CINE
                         </h1>
 
-                        {/* "GUESS" - Mouse-Tracking Spotlight Mask */}
+                        {/* "GUESS" - Spotlight Mask (Only on header hover) */}
                         <motion.div className="relative -mt-2 sm:-mt-4 select-none">
                             {/* Base Layer: Faint Outline */}
                             <h1
@@ -95,9 +100,9 @@ function GameLanding() {
                                 GUESS
                             </h1>
 
-                            {/* Highlight Layer: Gradient Fill revealed by mouse */}
+                            {/* Highlight Layer: Gradient Fill revealed by mouse - only when hovering header */}
                             <motion.h1
-                                className="absolute inset-0 text-7xl font-medium tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] text-transparent z-10"
+                                className="absolute inset-0 text-7xl font-medium tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] text-transparent z-10 opacity-0 group-hover/header:opacity-100 transition-opacity duration-300"
                                 style={{
                                     backgroundImage: useMotionTemplate`radial-gradient(circle 250px at ${mouseX}px ${mouseY}px, rgba(255,255,255,0.8), transparent)`,
                                     backgroundClip: "text",
@@ -139,17 +144,16 @@ function GameLanding() {
                     />
                 </motion.div>
 
-                {/* --- Daily Challenge (Border Beam) --- */}
+                {/* --- Daily Challenge (Subtle Button) --- */}
                 <motion.div variants={itemVariants} className="mt-16">
                     <Link href="/daily" className="relative inline-block group">
                         {/* Background Glow */}
-                        <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary/20 to-primary/0 blur opacity-50 transition duration-500 group-hover:opacity-100" />
+                        <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/0 blur opacity-0 transition duration-500 group-hover:opacity-60" />
 
                         <Button variant="ghost" className="relative h-12 rounded-full px-8 overflow-hidden bg-zinc-900/50 backdrop-blur-sm border border-white/5 group-hover:bg-zinc-900/80 transition-all duration-300">
                             <BorderBeam size={100} duration={8} delay={9} borderWidth={1.5} colorFrom="var(--primary)" colorTo="transparent" />
 
-                            <span className="relative z-10 flex items-center text-xs font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">
-                                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                            <span className="relative z-10 flex items-center text-xs font-medium uppercase tracking-widest text-white/40 group-hover:text-primary transition-colors">
                                 Daily Challenge
                                 <span className="ml-2 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
                                     <Icons.Play className="h-3 w-3 fill-current" />

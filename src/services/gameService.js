@@ -143,13 +143,11 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
         })
         if (totalCount === 0) {
             // First time seeding synchronously
-            console.log(`No movies found for ${industry}. starting initial seed...`);
             const { seedMovies } = await import('./movieSeeder');
             await seedMovies(industry, 5);
         } else if (totalCount < 10) {
             // Low count: seed in background
-            console.log(`Low movie count (${totalCount}) for ${industry}. Triggering background seed...`);
-            import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
+            import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(() => { });
         }
 
         const validCount = await prisma.movie.count({
@@ -173,8 +171,7 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
 
     // Trigger background seed if count is getting low (preventive)
     if (count < 5) {
-        console.log(`Low unplayed count (${count}) for ${industry}. Triggering background seed...`);
-        import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(console.error);
+        import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(() => { });
     }
 
     let movie;

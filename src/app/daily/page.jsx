@@ -4,12 +4,12 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { FilmGrain } from "@/components/ui/film-grain";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
-import { CalendarDays, Clock, Film, Clapperboard, Sparkles, Check, ArrowLeft, ArrowRight, Flame } from "lucide-react";
+import { Icons } from "@/components/Icons";
+import { CalendarDays, Clock, Check, ArrowLeft, ArrowRight, Flame } from "lucide-react";
 
 const categories = [
-    { id: "BOLLYWOOD", name: "Bollywood", Icon: Film, color: "#f97316", tagline: "Masala & Magic" },
-    { id: "HOLLYWOOD", name: "Hollywood", Icon: Clapperboard, color: "#3b82f6", tagline: "Blockbusters" },
-    { id: "ANIME", name: "Anime", Icon: Sparkles, color: "#a855f7", tagline: "Studio Ghibli & More" },
+    { id: "BOLLYWOOD", name: "Bollywood", Icon: Icons.Bollywood, color: "#f97316", tagline: "Masala & Magic" },
+    { id: "HOLLYWOOD", name: "Hollywood", Icon: Icons.Hollywood, color: "#3b82f6", tagline: "Blockbusters" },
 ];
 
 export default function DailyChallengePage() {
@@ -108,7 +108,7 @@ export default function DailyChallengePage() {
                     <div className="relative mx-auto mb-6 w-16 h-16">
                         <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
                         <div className="relative w-full h-full rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center shadow-2xl">
-                            <CalendarDays className="w-8 h-8 text-primary" strokeWidth={1.5} />
+                            <Icons.Projector className="w-8 h-8 text-primary" />
                         </div>
                     </div>
 
@@ -121,7 +121,7 @@ export default function DailyChallengePage() {
                     </p>
                 </motion.div>
 
-                <div className="w-full space-y-4">
+                <div className="w-full space-y-3">
                     {categories.map((cat, index) => {
                         const played = playedToday[cat.id];
                         const CategoryIcon = cat.Icon;
@@ -134,17 +134,17 @@ export default function DailyChallengePage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                 >
-                                    <div className="w-full px-6 py-5 rounded-2xl border border-white/5 bg-zinc-900/30 flex items-center justify-between opacity-60 grayscale cursor-not-allowed">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-xl bg-white/5">
+                                    <div className="w-full px-5 py-4 rounded-2xl border border-white/5 bg-zinc-900/30 flex items-center justify-between opacity-60 grayscale cursor-not-allowed">
+                                        <div className="flex items-center gap-3 flex-shrink-0">
+                                            <div className="p-2.5 rounded-xl bg-white/5">
                                                 <CategoryIcon className="w-5 h-5 text-muted-foreground" />
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-muted-foreground">{cat.name}</h3>
+                                                <h3 className="font-semibold text-muted-foreground">{cat.name}</h3>
                                                 <p className="text-xs text-muted-foreground/60">Challenge Completed</p>
                                             </div>
                                         </div>
-                                        <Check className="w-5 h-5 text-emerald-500" />
+                                        <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                                     </div>
                                 </motion.div>
                             )
@@ -158,17 +158,19 @@ export default function DailyChallengePage() {
                                 transition={{ delay: index * 0.1 }}
                             >
                                 <Link href={`/daily/${cat.id}`}>
-                                    <SpotlightCard className="w-full px-6 py-5 flex items-center justify-between group cursor-pointer transition-transform active:scale-[0.98]">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-xl bg-zinc-900 border border-white/10 group-hover:border-primary/50 transition-colors">
-                                                <CategoryIcon className="w-5 h-5 text-white group-hover:text-primary transition-colors" />
+                                    <SpotlightCard className="w-full group cursor-pointer transition-transform active:scale-[0.98]">
+                                        <div className="flex items-center justify-between w-full px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 group-hover:border-primary/50 transition-colors">
+                                                    <CategoryIcon className="w-5 h-5 text-white group-hover:text-primary transition-colors" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <h3 className="font-semibold text-white group-hover:text-primary transition-colors">{cat.name}</h3>
+                                                    <p className="text-xs text-muted-foreground">{cat.tagline}</p>
+                                                </div>
                                             </div>
-                                            <div className="text-left">
-                                                <h3 className="font-bold text-white group-hover:text-primary transition-colors">{cat.name}</h3>
-                                                <p className="text-xs text-muted-foreground">{cat.tagline}</p>
-                                            </div>
+                                            <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                         </div>
-                                        <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-white group-hover:translate-x-1 transition-all" />
                                     </SpotlightCard>
                                 </Link>
                             </motion.div>

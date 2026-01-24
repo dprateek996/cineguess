@@ -128,7 +128,7 @@ export default function MinimalHUD({
             {/* Center: Mode + Round */}
             <div className="text-center">
                 <p className="text-neutral-500 text-xs uppercase tracking-widest">
-                    {isRapidFire ? "Rapid Fire" : "Classic"} • Round {round}
+                    {mode === "rapidfire" ? "Rapid Fire" : mode === "Daily" ? "Daily Challenge" : "Classic"}{mode !== "Daily" && ` • Round ${round}`}
                 </p>
                 {streak > 0 && (
                     <p className="text-amber-500/70 text-[10px] tracking-wide">
