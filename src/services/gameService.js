@@ -1,5 +1,7 @@
 import prisma from '@/lib/prisma'
 import { validateGuess, calculateSimilarity } from './validationService'
+import { seedMovies } from './movieSeeder'
+import { STATIC_HINTS } from '../data/static-hints'
 
 /**
  * CineQuest Game Service - Endless & Rapid Fire Modes
@@ -121,57 +123,30 @@ function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic'
 // Supports progressive difficulty based on 'round'
 async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round = 1) {
     const MAX_RETRIES = 5;
-
     const where = {
         industry,
         id: { notIn: playedMovieIds },
-        // SAFEGUARD: Only select movies with valid image paths
+        // Ensure we only pick movies that have images!
         posterPath: { not: '' },
         backdropPath: { not: '' },
     }
 
-    const count = await prisma.movie.count({ where })
+
+    let count = await prisma.movie.count({ where })
 
     if (count === 0) {
-        // If all movies played, allow repeats but still require valid images
-        const totalCount = await prisma.movie.count({
-            where: {
-                industry,
-                posterPath: { not: '' },
-                backdropPath: { not: '' },
-            }
-        })
-        if (totalCount === 0) {
-            // First time seeding synchronously
-            const { seedMovies } = await import('./movieSeeder');
-            await seedMovies(industry, 5);
-        } else if (totalCount < 10) {
-            // Low count: seed in background
-            import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(() => { });
+        console.log(`[GameService] No movies found for ${industry}. Seeding initial batch...`);
+        const seededCount = await seedMovies(industry, 5);
+        console.log(`[GameService] Seeded ${seededCount} movies.`);
+
+        if (seededCount === 0) {
+            return null;
         }
-
-        const validCount = await prisma.movie.count({
-            where: {
-                industry,
-                posterPath: { not: '' },
-                backdropPath: { not: '' },
-            }
-        })
-        const skip = Math.floor(Math.random() * validCount)
-        return prisma.movie.findFirst({
-            where: {
-                industry,
-                posterPath: { not: '' },
-                backdropPath: { not: '' },
-            },
-            skip,
-            include: { hints: true },
-        })
-    }
-
-    // Trigger background seed if count is getting low (preventive)
-    if (count < 5) {
-        import('./movieSeeder').then(m => m.seedMovies(industry, 5)).catch(() => { });
+        // Update count after seeding
+        count = await prisma.movie.count({ where });
+    } else if (count < 10) {
+        console.log(`[GameService] Low movie count (${count}). Triggering background seed.`);
+        seedMovies(industry, 5).catch(err => console.error("Background seed failed:", err));
     }
 
     let movie;

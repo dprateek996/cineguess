@@ -13,6 +13,13 @@ export async function POST(request) {
         const { industry, mode } = initGameSchema.parse(body)
         const userId = undefined // Will be implemented with auth
 
+        if (!process.env.TMDB_API_TOKEN && !process.env.TMDB_API_KEY) {
+            console.error("CRITICAL: Missing TMDB_API_KEY or TMDB_API_TOKEN env var");
+        }
+        if (!process.env.DATABASE_URL) {
+            console.error("CRITICAL: Missing DATABASE_URL env var");
+        }
+
         const gameSession = await initializeGameSession(industry, userId, mode)
 
         return NextResponse.json({
