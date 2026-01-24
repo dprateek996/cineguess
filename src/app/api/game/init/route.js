@@ -20,12 +20,60 @@ export async function POST(request) {
             console.error("CRITICAL: Missing DATABASE_URL env var");
         }
 
-        const gameSession = await initializeGameSession(industry, userId, mode)
+        try {
+            const gameSession = await initializeGameSession(industry, userId, mode)
+            return NextResponse.json({
+                success: true,
+                data: gameSession,
+            })
+        } catch (initError) {
+            console.error('Game Init Failed (Emergency Mode Activated):', initError);
 
-        return NextResponse.json({
-            success: true,
-            data: gameSession,
-        })
+            // EMERGENCY ROUTE FALLBACK: Even if gameService explodes, give the user a game.
+            // Pick a random movie from fallback
+            const { FALLBACK_MOVIES } = await import('@/data/fallback-movies');
+            const fallbackList = FALLBACK_MOVIES[industry] || FALLBACK_MOVIES.HOLLYWOOD;
+            const movie = fallbackList[Math.floor(Math.random() * fallbackList.length)];
+
+            const timestamp = Date.now();
+            const mockSession = {
+                sessionId: `emergency-${timestamp}`,
+                currentRound: 1,
+                currentStage: 1,
+                streak: 0,
+                totalScore: 0,
+                lives: mode === 'rapidfire' ? 3 : null,
+                stageData: {
+                    type: 'poster',
+                    data: { posterPath: movie.posterPath, blurAmount: 10 },
+                    pointsMultiplier: 4,
+                    label: 'Blurred Poster'
+                },
+                allStages: {
+                    1: { type: 'poster', data: { posterPath: movie.posterPath, blurAmount: 10 }, pointsMultiplier: 4, label: 'Blurred Poster' },
+                    2: { type: 'dialogue', data: { dialogue: movie.hints.level2Dialogue }, pointsMultiplier: 2, label: 'Famous Dialogue' },
+                    3: { type: 'scene', data: { backdropPath: movie.backdropPath }, pointsMultiplier: 1, label: 'Movie Scene' }
+                },
+                hints: [
+                    { type: 'poster', text: 'Look at the blurred poster', level: 1 },
+                    { type: 'dialogue', text: movie.hints.level2Dialogue, level: 2 },
+                    { type: 'scene', text: 'Scene Reveal', level: 3 },
+                ],
+                blurAmount: 10,
+                timeLimit: mode === 'rapidfire' ? 30 : null,
+                posterPath: movie.posterPath,
+                backdropPath: movie.backdropPath,
+                industry,
+                mode,
+                isGameOver: false,
+            }
+
+            return NextResponse.json({
+                success: true,
+                data: mockSession,
+                note: "Served via Emergency Route Fallback"
+            })
+        }
     } catch (error) {
         console.error('Game init error:', error)
 

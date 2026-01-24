@@ -14,22 +14,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // In production, replace with actual audio files in /public/sounds/
 const SOUNDS = {
     // Success sound - short cheerful chime
-    correct: "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3",
-    // Wrong sound - removed per user request
-    wrong: "",
-    // Stage transition - whoosh
-    // Stage transition - removed wind sound
-    transition: "",
-    // Typewriter key
-    typewriter: "https://assets.mixkit.co/active_storage/sfx/2360/2360-preview.mp3",
-    // Timer tick
-    tick: "https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3",
-    // Game start
-    start: "https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3",
-    // Game over - removed per user request (wind sound)
-    gameOver: "",
-    // Click/UI interaction
-    click: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
+    // Use local paths to avoid external 403 errors
+    correct: "/sounds/correct.mp3",
+    wrong: "/sounds/wrong.mp3",
+    win: "/sounds/win.mp3",
+    lose: "/sounds/lose.mp3",
+
+    // UI Sounds
+    typewriter: "/sounds/typewriter.mp3",
+    reveal: "/sounds/reveal.mp3",
+    tick: "/sounds/tick.mp3",
+    clock: "/sounds/clock.mp3",
+    start: "/sounds/start.mp3",
+    hover: "/sounds/hover.mp3",
+    click: "/sounds/click.mp3",
+    select: "/sounds/select.mp3",
 };
 
 export function useSound() {

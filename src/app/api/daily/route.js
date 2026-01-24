@@ -90,18 +90,46 @@ export async function GET(request) {
                 movieId: dailyGame.movieId,
                 totalAttempts: dailyGame.totalAttempts,
                 totalWins: dailyGame.totalWins,
-                movie: dailyGame.movie, // Include movie data for frontend
+                movie: dailyGame.movie,
             },
         })
     } catch (error) {
-        console.error('Daily challenge error:', error)
+        console.error('Daily challenge error (Switching to Emergency Mode):', error)
 
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'Failed to fetch daily challenge',
+        // EMERGENCY DAILY FALLBACK
+        const { FALLBACK_MOVIES } = await import('@/data/fallback-movies');
+        // Use query param industry or default to Global
+        const url = new URL(request.url);
+        const industry = url.searchParams.get('industry') || 'GLOBAL';
+        const list = FALLBACK_MOVIES[industry] || FALLBACK_MOVIES.HOLLYWOOD;
+
+        // Deterministic daily pick based on date
+        const todayIdx = new Date().getDate() % list.length;
+        const movie = list[todayIdx];
+
+        return NextResponse.json({
+            success: true,
+            data: {
+                id: `daily-emergency-${new Date().toISOString().split('T')[0]}`,
+                date: new Date(),
+                industry: industry,
+                movieId: `fallback-${movie.tmdbId}`,
+                totalAttempts: 0,
+                totalWins: 0,
+                movie: {
+                    ...movie,
+                    id: `fallback-${movie.tmdbId}`,
+                    hints: movie.hints
+                },
             },
-            { status: 500 }
+            note: "Served via Emergency Daily Fallback"
+        })
+    }
+}
+success: false,
+    error: 'Failed to fetch daily challenge',
+            },
+{ status: 500 }
         )
     }
 }

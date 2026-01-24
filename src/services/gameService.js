@@ -241,17 +241,31 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
         const hints = getHintsForRound(movie, difficultyConfig.maxHints)
         const stageData = getStageData(movie, 1)  // Start at Stage 1 (scene)
 
-        const session = await prisma.gameSession.create({
-            data: {
-                movieId: movie.id,
-                userId: userId || null,
-                currentLevel: 1, // Using as "current round"
+        let session;
+        try {
+            session = await prisma.gameSession.create({
+                data: {
+                    movieId: movie.id,
+                    userId: userId || null,
+                    currentLevel: 1, // Using as "current round"
+                    attempts: 0,
+                    guesses: [movie.id], // Track played movie IDs
+                    gameMode: mode,
+                    status: 'IN_PROGRESS',
+                },
+            });
+        } catch (dbErr) {
+            console.error("[GameService] Session Creation Failed (Offline Mode):", dbErr);
+            // Critical Fallback: Application-level mock session if DB is dead
+            session = {
+                id: `offline-${Date.now()}`,
                 attempts: 0,
-                guesses: [movie.id], // Track played movie IDs
-                gameMode: mode,
+                currentLevel: 1,
+                streak: 0,
                 status: 'IN_PROGRESS',
-            },
-        })
+                userId: null
+            };
+        }
 
         return {
             sessionId: session.id,
@@ -286,6 +300,11 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
 
 // Process a guess
 export async function processGuess(sessionId, guess, currentStage = 1, timeRemaining = null) {
+    // OFFLINE/EMERGENCY SESSION HANDLING
+    if (sessionId.startsWith('emergency-') || sessionId.startsWith('offline-')) {
+        return processOfflineGuess(sessionId, guess, currentStage, timeRemaining);
+    }
+
     try {
         const session = await prisma.gameSession.findUnique({
             where: { id: sessionId },
@@ -505,6 +524,39 @@ export async function getGameSession(sessionId) {
         ...(session.isCompleted && {
             correctAnswer: session.movie.title,
         }),
+    }
+}
+
+
+// Helper for stateless offline guessing
+async function processOfflineGuess(sessionId, guess, currentStage, timeRemaining) {
+    console.log(`[GameService] Processing Offline Guess for session: ${sessionId}`);
+
+    // Attempt to match guess against ANY fallback movie since we are stateless
+    const { FALLBACK_MOVIES } = await import('../data/fallback-movies');
+    const allFallbacks = Object.values(FALLBACK_MOVIES).flat();
+    const matchedMovie = allFallbacks.find(m => validateGuess(guess, m.title) === 'CORRECT');
+
+    if (matchedMovie) {
+        return {
+            result: 'CORRECT',
+            points: 1000,
+            message: "Correct! (Offline Mode)",
+            nextRound: {
+                round: 2,
+                stage: 1,
+                // Pick another random fallback
+                ...getStageData(allFallbacks[Math.floor(Math.random() * allFallbacks.length)], 1)
+            },
+            stats: { streak: 1, totalScore: 1000 }
+        }
+    }
+
+    return {
+        result: 'WRONG',
+        message: "Wrong guess (or Offline Mode limitation)",
+        lives: 3,
+        correctAnswer: "Unknown (Offline)"
     }
 }
 
