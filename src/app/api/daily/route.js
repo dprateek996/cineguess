@@ -126,13 +126,6 @@ export async function GET(request) {
         })
     }
 }
-success: false,
-    error: 'Failed to fetch daily challenge',
-            },
-{ status: 500 }
-        )
-    }
-}
 
 // POST - Process a daily challenge guess
 export async function POST(request) {
