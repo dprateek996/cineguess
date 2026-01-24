@@ -15,6 +15,9 @@ export const metadata = {
     title: "CineQuest - Movie Guessing Game",
     description: "Guess movies from blurred posters and AI-generated hints. Test your cinema knowledge with Bollywood, Hollywood, and Anime challenges!",
     keywords: ["movie", "guessing game", "bollywood", "hollywood", "anime", "trivia"],
+    icons: {
+        icon: '/favicon.svg',
+    },
     openGraph: {
         title: "CineQuest - Movie Guessing Game",
         description: "Can you guess the movie from blurred posters?",

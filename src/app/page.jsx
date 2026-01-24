@@ -25,10 +25,20 @@ function GameLanding() {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
+    // Local mouse coordinates for the header spotlight
+    const headerX = useMotionValue(0);
+    const headerY = useMotionValue(0);
+
     function handleMouseMove({ currentTarget, clientX, clientY }) {
         let { left, top } = currentTarget.getBoundingClientRect();
         mouseX.set(clientX - left);
         mouseY.set(clientY - top);
+    }
+
+    function handleHeaderMouseMove({ currentTarget, clientX, clientY }) {
+        let { left, top } = currentTarget.getBoundingClientRect();
+        headerX.set(clientX - left);
+        headerY.set(clientY - top);
     }
 
     // --- Animation Variants ---
@@ -74,6 +84,7 @@ function GameLanding() {
                     className="relative z-20 mb-10 text-center md:mb-12 group/header"
                     onMouseEnter={() => containerRef.current?.classList.add('header-hover')}
                     onMouseLeave={() => containerRef.current?.classList.remove('header-hover')}
+                    onMouseMove={handleHeaderMouseMove}
                 >
                     {/* Logo Icon / Brand Mark */}
                     <div className="mb-5 flex justify-center">
@@ -86,38 +97,48 @@ function GameLanding() {
 
                     <div className="relative flex flex-col items-center justify-center leading-[0.85]">
                         {/* "CINE" - Solid Metallic */}
-                        <h1 className="relative text-7xl font-extrabold tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] select-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-sm">
+                        <h1 className="relative text-7xl font-extrabold tracking-[-0.05em] sm:text-8xl md:text-9xl lg:text-[10rem] select-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-sm">
                             CINE
                         </h1>
 
-                        {/* "GUESS" - Spotlight Mask (Only on header hover) */}
-                        <motion.div className="relative -mt-2 sm:-mt-4 select-none">
-                            {/* Base Layer: Faint Outline */}
+                        {/* "QUEST" - Spotlight Mask (Only on header hover) */}
+                        <motion.div className="relative -mt-4 sm:-mt-6 select-none">
+                            {/* Base Layer: Outline */}
                             <h1
                                 className="text-7xl font-medium tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] text-transparent opacity-30 mix-blend-overlay"
-                                style={{ WebkitTextStroke: "1px rgba(255,255,255,0.5)" }}
+                                style={{ WebkitTextStroke: "2px rgba(255,255,255,0.5)" }}
                             >
-                                GUESS
+                                QUEST
                             </h1>
 
-                            {/* Highlight Layer: Gradient Fill revealed by mouse - only when hovering header */}
+                            {/* Spotlight Reveal Layer */}
                             <motion.h1
-                                className="absolute inset-0 text-7xl font-medium tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] text-transparent z-10 opacity-0 group-hover/header:opacity-100 transition-opacity duration-300"
+                                className="absolute inset-0 text-7xl font-medium tracking-tighter sm:text-8xl md:text-9xl lg:text-[10rem] text-[#fbbf24] z-10 opacity-0 group-hover/header:opacity-100 transition-opacity duration-300"
                                 style={{
-                                    backgroundImage: useMotionTemplate`radial-gradient(circle 250px at ${mouseX}px ${mouseY}px, rgba(255,255,255,0.8), transparent)`,
-                                    backgroundClip: "text",
-                                    WebkitBackgroundClip: "text",
-                                    WebkitTextStroke: "1px rgba(255,255,255,0.1)"
+                                    WebkitTextStroke: "2px #fbbf24",
+                                    mixBlendMode: "plus-lighter",
+                                    maskImage: useMotionTemplate`radial-gradient(
+                                        300px circle at ${headerX}px ${headerY}px, 
+                                        rgba(0,0,0,1) 0%, 
+                                        transparent 100%
+                                    )`,
+                                    WebkitMaskImage: useMotionTemplate`radial-gradient(
+                                        300px circle at ${headerX}px ${headerY}px, 
+                                        rgba(0,0,0,1) 0%, 
+                                        transparent 100%
+                                    )`
                                 }}
                             >
-                                GUESS
+                                QUEST
                             </motion.h1>
                         </motion.div>
 
                         {/* Tagline - Tightened Spacing */}
                         <motion.p
-                            variants={itemVariants}
-                            className="mt-6 text-sm font-semibold tracking-[0.3em] text-primary uppercase md:text-base opacity-90"
+                            className="mt-6 md:mt-8 text-xs font-bold uppercase tracking-[0.3em] text-white/40"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5, duration: 1 }}
                         >
                             Frame-by-Frame Trivia
                         </motion.p>
@@ -151,7 +172,7 @@ function GameLanding() {
                         <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/0 blur opacity-0 transition duration-500 group-hover:opacity-60" />
 
                         <Button variant="ghost" className="relative h-12 rounded-full px-8 overflow-hidden bg-zinc-900/50 backdrop-blur-sm border border-white/5 group-hover:bg-zinc-900/80 transition-all duration-300">
-                            <BorderBeam size={100} duration={8} delay={9} borderWidth={1.5} colorFrom="var(--primary)" colorTo="transparent" />
+                            <BorderBeam size={60} duration={5} delay={0} borderWidth={2} colorFrom="#fbbf24" colorTo="transparent" />
 
                             <span className="relative z-10 flex items-center text-xs font-medium uppercase tracking-widest text-white/40 group-hover:text-primary transition-colors">
                                 Daily Challenge

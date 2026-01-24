@@ -101,9 +101,7 @@ export default function DailyChallengePage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-12 w-full"
                 >
-                    <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors text-xs uppercase tracking-widest mb-10 font-bold">
-                        <ArrowLeft className="w-3 h-3" /> Back to Menu
-                    </Link>
+
 
                     <div className="relative mx-auto mb-6 w-16 h-16">
                         <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
@@ -188,6 +186,17 @@ export default function DailyChallengePage() {
                         <Flame className="w-3 h-3 text-orange-500" />
                         <span>Build your streak daily</span>
                     </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="mt-8 text-center"
+                >
+                    <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors text-xs uppercase tracking-widest font-bold">
+                        <ArrowLeft className="w-3 h-3" /> Back to Menu
+                    </Link>
                 </motion.div>
 
             </main>
