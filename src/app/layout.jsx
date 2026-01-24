@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
         <html lang="en" className="dark">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 {children}
+                <Analytics />
             </body>
         </html>
     );
