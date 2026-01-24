@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, use, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import html2canvas from 'html2canvas'; // For manual card saving
 import { useGame } from "@/hooks/useGame";
 import { useSound } from "@/hooks/useSound";
 import GameIntro from "@/components/ui/game-intro";
@@ -14,31 +15,32 @@ import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
 import { FilmGrain } from "@/components/ui/film-grain";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
+import { Icons } from "@/components/Icons";
 import {
-    Clapperboard, Film, Sparkles, Globe, Frown, Target, Zap,
-    Image as ImageIcon, PartyPopper, Star, XCircle, Play
+    Frown, Zap,
+    Image as ImageIcon, PartyPopper, Star,
 } from "lucide-react";
 import Link from "next/link";
 
 const industryConfig = {
     BOLLYWOOD: {
         name: "Bollywood",
-        Icon: Film,
+        Icon: Icons.Bollywood,
         confettiColors: ["#f97316", "#fbbf24", "#ef4444", "#ec4899"],
     },
     HOLLYWOOD: {
         name: "Hollywood",
-        Icon: Clapperboard,
+        Icon: Icons.Hollywood,
         confettiColors: ["#3b82f6", "#06b6d4", "#8b5cf6", "#fbbf24"],
     },
     ANIME: {
         name: "Anime",
-        Icon: Sparkles,
+        Icon: Icons.Anime,
         confettiColors: ["#a855f7", "#ec4899", "#f472b6", "#c084fc"],
     },
     GLOBAL: {
         name: "Global",
-        Icon: Globe,
+        Icon: Icons.Global,
         confettiColors: ["#10b981", "#14b8a6", "#22c55e", "#a3e635"],
     },
 };
@@ -55,6 +57,7 @@ export default function PlayPage({ params }) {
     const [userHandle, setUserHandle] = useState(null);
     const [gameMode, setGameMode] = useState('classic');
     const [showModeSelect, setShowModeSelect] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [currentStage, setCurrentStage] = useState(1);
     const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
     const [guessedAtStage, setGuessedAtStage] = useState(null);
@@ -228,10 +231,11 @@ export default function PlayPage({ params }) {
 
                 import("canvas-confetti").then((confetti) => {
                     confetti.default({
-                        particleCount: 150,
-                        spread: 80,
+                        particleCount: 30,
+                        spread: 40,
                         origin: { y: 0.6 },
                         colors: config.confettiColors,
+                        disableForReducedMotion: true,
                     });
                 });
 
@@ -350,14 +354,14 @@ export default function PlayPage({ params }) {
                         <div onClick={() => startGame('classic')} className="cursor-pointer">
                             <SpotlightCard className="h-full px-8 py-10 flex flex-col items-start gap-4 transition-transform hover:scale-[1.02] active:scale-[0.98]">
                                 <div className="p-4 rounded-2xl bg-white/5 ring-1 ring-white/10">
-                                    <Target className="w-8 h-8 text-primary" />
+                                    <Icons.Classic className="w-8 h-8 text-primary" />
                                 </div>
                                 <div className="text-left">
                                     <h3 className="text-2xl font-bold text-white">Classic Endless</h3>
                                     <p className="text-muted-foreground text-sm mt-2 leading-relaxed">Relaxed pace. 4 stages of clues. Guess early for bonus points!</p>
                                 </div>
                                 <div className="mt-auto pt-4 flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest">
-                                    <span>Play Classic</span> <Play className="w-3 h-3 fill-current" />
+                                    <span>Play Classic</span> <Icons.Play className="w-3 h-3 fill-current" />
                                 </div>
                             </SpotlightCard>
                         </div>
@@ -365,14 +369,14 @@ export default function PlayPage({ params }) {
                         <div onClick={() => startGame('rapidfire')} className="cursor-pointer">
                             <SpotlightCard className="h-full px-8 py-10 flex flex-col items-start gap-4 transition-transform hover:scale-[1.02] active:scale-[0.98]">
                                 <div className="p-4 rounded-2xl bg-white/5 ring-1 ring-white/10">
-                                    <Zap className="w-8 h-8 text-red-500" />
+                                    <Icons.RapidFire className="w-8 h-8 text-red-500" />
                                 </div>
                                 <div className="text-left">
                                     <h3 className="text-2xl font-bold text-white">Rapid Fire</h3>
                                     <p className="text-muted-foreground text-sm mt-2 leading-relaxed">Beat the clock! 3 lives. High intensity speed run.</p>
                                 </div>
                                 <div className="mt-auto pt-4 flex items-center gap-2 text-red-500 text-xs font-bold uppercase tracking-widest">
-                                    <span>Start Run</span> <Play className="w-3 h-3 fill-current" />
+                                    <span>Start Run</span> <Icons.Play className="w-3 h-3 fill-current" />
                                 </div>
                             </SpotlightCard>
                         </div>
@@ -449,100 +453,261 @@ export default function PlayPage({ params }) {
         );
     }
 
-    if (session?.isGameOver) {
+    const getCinephileRating = (score) => {
+        if (score >= 10000) return "Cinematic Legend";
+        if (score >= 5000) return "Visionary Director";
+        if (score >= 2000) return "Lead Actor";
+        if (score >= 500) return "Supporting Role";
+        return "Background Extra";
+    };
+
+    const getGuessTimeline = () => {
+        const stage = guessedAtStage || (session?.isWon ? 3 : 4); // Default to 3/4 if state lost
+        const isWin = session?.isWon || result?.isCorrect;
+
+        // 1. Poster, 2. Dialogue, 3. Scene
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-                <AmbientBackground />
+            <div className="flex items-center gap-3 justify-center my-6">
+                {/* Stage 1: Poster */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 1 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 1 && isWin ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Bollywood className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+                <div className="w-8 h-px bg-white/20 rounded-full" />
+
+                {/* Stage 2: Dialogue */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 2 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 2 && isWin ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Classic className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+                <div className="w-8 h-px bg-white/20 rounded-full" />
+
+                {/* Stage 3: Scene */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 3 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 3 && isWin ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Hollywood className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+
+                {/* Result Icon */}
+                <div className="ml-3 pl-3 border-l border-white/10">
+                    {isWin ? (
+                        <div className="p-1 rounded-full bg-emerald-500/10">
+                            <Icons.Success className="w-5 h-5 text-emerald-400" />
+                        </div>
+                    ) : (
+                        <div className="p-1 rounded-full bg-red-500/10">
+                            <Icons.Fail className="w-5 h-5 text-red-400/80" />
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    if (session?.isGameOver) {
+        const rating = getCinephileRating(session?.totalScore || 0);
+        const movieTitle = session?.correctAnswer || "Unknown Movie";
+        const score = session?.totalScore || 0;
+        const streak = session?.streak || 0;
+
+        const handleDownloadCard = async () => {
+            setIsDownloading(true);
+            const cardElement = document.getElementById('stat-card-container');
+            if (cardElement) {
+                try {
+                    const canvas = await html2canvas(cardElement, {
+                        backgroundColor: null,
+                        scale: 2, // Retain high quality
+                        useCORS: true, // Allow cross-origin images (TMDB)
+                        logging: false,
+                    });
+                    const image = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = `cineguess-stats-${Date.now()}.png`;
+                    link.click();
+                } catch (error) {
+                    console.error('Failed to capture card:', error);
+                }
+            }
+            setIsDownloading(false);
+        };
+
+        const shareText = `I just identified "${movieTitle}"! 🎞️✨\n\nScore: ${score} pts\nRank: ${rating} 👑\n\nCan you beat my streak? #CineGuess`;
+
+        // Construct the viral share URL
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cineguess.com';
+        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(session?.posterPath || '')}&mode=Standard`;
+        const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
+
+        const containerVariants = {
+            hidden: { opacity: 0 },
+            visible: {
+                opacity: 1,
+                transition: {
+                    when: "beforeChildren",
+                    staggerChildren: 0.15
+                }
+            }
+        };
+
+        const itemVariants = {
+            hidden: { opacity: 0, y: 20 },
+            visible: {
+                opacity: 1,
+                y: 0,
+                transition: { type: "spring", stiffness: 300, damping: 24 }
+            }
+        };
+
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden font-sans selection:bg-amber-500/30">
+                {/* Cinematic Backdrop */}
+                {session?.backdropPath && (
+                    <div className="absolute inset-0 z-0">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 1.2 }}
+                            animate={{ opacity: 1, scale: 1.1 }}
+                            transition={{ duration: 2, ease: "easeOut" }}
+                            className="w-full h-full relative"
+                        >
+                            <img
+                                src={`https://image.tmdb.org/t/p/original${session.backdropPath}`}
+                                alt="Background"
+                                className="w-full h-full object-cover opacity-20 blur-2xl grayscale"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                        </motion.div>
+                    </div>
+                )}
+                <FilmGrain />
 
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col md:flex-row gap-8 items-center max-w-5xl w-full relative z-10"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="w-full max-w-md relative z-10 perspective-1000"
                 >
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="w-full max-w-sm aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative group"
-                    >
-                        {session?.posterPath ? (
-                            <img
-                                src={`https://image.tmdb.org/t/p/w780${session.posterPath}`}
-                                alt="Movie Poster"
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                                <Film className="w-16 h-16 text-zinc-700" />
-                            </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
-                    </motion.div>
+                    {/* The Viral Stat Card */}
+                    <div id="stat-card-container" className="bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
+                        {/* Card Header: Rating */}
+                        <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent p-8 pb-6 text-center border-b border-white/5 relative overflow-hidden">
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                    <div className="flex-1 text-center md:text-left space-y-8">
-                        <div>
-                            <h2 className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tighter leading-none">
-                                Game Over
-                            </h2>
-                            <p className="text-muted-foreground text-xl">
-                                The movie was <span className="text-white font-bold">{session.correctAnswer}</span>
-                            </p>
-                        </div>
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-medium mb-3">Cinephile Rating</p>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-6 rounded-2xl bg-zinc-900/40 border border-white/10 backdrop-blur-md">
-                                <p className="text-muted-foreground text-[10px] uppercase tracking-widest mb-2">Total Score</p>
-                                <p className="text-4xl font-bold text-white">{session.totalScore || 0}</p>
+                            {/* Text Masking & Glow */}
+                            <div className="relative inline-block">
+                                <h2 className="text-3xl sm:text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                                    {rating}
+                                </h2>
+                                <div className="absolute -inset-4 bg-amber-400/20 blur-3xl opacity-20 rounded-full" />
                             </div>
-                            <div className="p-6 rounded-2xl bg-zinc-900/40 border border-white/10 backdrop-blur-md leading-none">
-                                <p className="text-muted-foreground text-[10px] uppercase tracking-widest mb-2">Max Streak</p>
-                                <div className="flex items-center gap-3 justify-center md:justify-start">
-                                    <p className="text-4xl font-bold text-white leading-none">{session.streak || 0}</p>
-                                    <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse mt-1" />
+                        </motion.div>
+
+                        <div className="p-8 pt-6 flex flex-col items-center">
+                            {/* Movie Reveal with 3D Tilt */}
+                            <motion.div
+                                variants={itemVariants}
+                                className="mb-8 relative group cursor-default"
+                                whileHover={{ scale: 1.02, rotateX: 5, rotateY: 5 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                            >
+                                <div className="absolute -inset-4 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <div className="relative w-36 aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/20 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] group-hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] transition-shadow duration-500">
+                                    {session?.posterPath ? (
+                                        <img
+                                            src={`https://image.tmdb.org/t/p/w500${session.posterPath}`}
+                                            alt={movieTitle}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                            <Icons.Classic className="w-10 h-10 text-white/20" />
+                                        </div>
+                                    )}
+                                    {/* Glass Shine */}
+                                    <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+                                    <div className="absolute -inset-full top-0 block bg-gradient-to-b from-transparent to-white/10 opacity-20 transform -translate-y-1/2 group-hover:translate-y-full transition-transform duration-1000 ease-in-out" />
                                 </div>
-                            </div>
-                        </div>
+                            </motion.div>
 
-                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                            <button
-                                onClick={() => {
-                                    resetGame();
-                                    setShowModeSelect(true);
-                                    setCurrentStage(1);
-                                    setLives(3);
-                                }}
-                                className="flex-1 h-14 bg-white text-black rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                            >
-                                Play Again
-                            </button>
-                            <button
-                                onClick={() => setShowShareCard(true)}
-                                className="flex-1 h-14 bg-zinc-900/50 text-white border border-white/10 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-zinc-900/80 transition-colors"
-                            >
-                                Share Result
-                            </button>
-                        </div>
+                            <motion.h3 variants={itemVariants} className="text-center text-xl font-bold text-white mb-1.5 leading-tight tracking-tight">
+                                {movieTitle}
+                            </motion.h3>
+                            <motion.p variants={itemVariants} className="text-[10px] text-white/30 uppercase tracking-widest mb-8 font-medium">
+                                {config.name} Collection
+                            </motion.p>
 
-                        <Link href="/" className="inline-block text-muted-foreground hover:text-white transition-colors text-xs uppercase tracking-widest mt-4">
-                            Return to Menu
-                        </Link>
+                            {/* Guess Path Timeline - Minimalist Audit */}
+                            <motion.div variants={itemVariants} className="w-full mb-8 relative">
+                                <p className="sr-only">Guess Timeline</p>
+                                {getGuessTimeline()}
+                            </motion.div>
+
+                            {/* Stats Grid - Ghost Containers */}
+                            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 w-full mb-8">
+                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Score</p>
+                                    <p className="text-2xl font-bold text-white tabular-nums tracking-tight">{score}</p>
+                                </div>
+                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Streak</p>
+                                    <p className="text-2xl font-bold text-white tabular-nums tracking-tight">{streak}</p>
+                                </div>
+                            </motion.div>
+
+                            {/* Actions - Contrast Balance */}
+                            <motion.div variants={itemVariants} className="flex flex-col w-full gap-3">
+                                <a
+                                    href={shareUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 hover:border-sky-500/40 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                >
+                                    Share Result
+                                </a>
+
+                                <button
+                                    onClick={handleDownloadCard}
+                                    disabled={isDownloading}
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                >
+                                    {isDownloading ? 'Capturing...' : (
+                                        <>
+                                            <Icons.Download className="w-4 h-4" /> Save Image
+                                        </>
+                                    )}
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        resetGame();
+                                        setShowModeSelect(true);
+                                        setCurrentStage(1);
+                                        setLives(3);
+                                    }}
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-amber-400 hover:bg-amber-300 text-black rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all shadow-[0_0_20px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.6)] hover:scale-[1.02]"
+                                >
+                                    <Icons.Play className="w-3 h-3 fill-current" /> Play Again
+                                </button>
+                            </motion.div>
+                        </div>
                     </div>
-                </motion.div>
 
-                <AnimatePresence>
-                    {showShareCard && (
-                        <ShareCard
-                            industry={industry}
-                            mode={session?.mode || 'classic'}
-                            guessedAtStage={guessedAtStage || 3}
-                            totalStages={3}
-                            streak={session?.streak || 0}
-                            score={session?.totalScore || session?.finalScore || 0}
-                            movieTitle={session?.correctAnswer}
-                            onClose={() => setShowShareCard(false)}
-                        />
-                    )}
-                </AnimatePresence>
+                    <motion.button
+                        variants={itemVariants}
+                        onClick={() => window.location.href = '/'}
+                        className="w-full text-center mt-8 text-[10px] uppercase tracking-[0.2em] text-white/20 hover:text-white/40 transition-colors font-medium"
+                    >
+                        Return to Menu
+                    </motion.button>
+
+
+                </motion.div>
             </div>
         );
     }
@@ -595,7 +760,7 @@ export default function PlayPage({ params }) {
                                         transition={{ type: "spring", damping: 12 }}
                                         className="mb-6 relative z-10 drop-shadow-2xl flex justify-center"
                                     >
-                                        <PartyPopper className="w-24 h-24 text-primary mx-auto" strokeWidth={1} />
+                                        <Icons.Success className="w-24 h-24 text-primary mx-auto" />
                                     </motion.div>
                                     <p className="text-4xl font-extrabold text-white tracking-tighter mb-4">That's right!</p>
                                     <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-zinc-900 border border-white/10 text-muted-foreground text-sm font-medium">
@@ -640,7 +805,7 @@ export default function PlayPage({ params }) {
                                 <div className={`text-xl ${result.status === "NEAR_MISS" ? "text-amber-500" : "text-red-500"}`}>
                                     {result.status === "NEAR_MISS" ?
                                         <Zap className="w-5 h-5 fill-current" /> :
-                                        <XCircle className="w-5 h-5" />
+                                        <Icons.Fail className="w-5 h-5" />
                                     }
                                 </div>
                                 <div>

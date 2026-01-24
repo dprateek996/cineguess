@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import Link from "next/link";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
-import { Play, Clapperboard, MonitorPlay, Sparkles } from "lucide-react";
+import { Icons } from "@/components/Icons";
 import { Button } from "@/components/ui/button";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { BorderBeam } from "@/components/ui/border-beam";
@@ -73,7 +73,7 @@ function GameLanding() {
                     {/* Logo Icon / Brand Mark */}
                     <div className="mb-5 flex justify-center">
                         <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900/80 ring-1 ring-white/10 backdrop-blur-md shadow-2xl">
-                            <Clapperboard className="h-7 w-7 text-primary" />
+                            <Icons.Projector className="h-7 w-7 text-primary" />
                             {/* Subtle inner glow for the icon box */}
                             <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/5" />
                         </div>
@@ -129,13 +129,13 @@ function GameLanding() {
                         href="/play/bollywood"
                         title="Bollywood"
                         subtitle="Masala & Magic"
-                        icon={MonitorPlay}
+                        icon={Icons.Bollywood}
                     />
                     <ModeCard
                         href="/play/hollywood"
                         title="Hollywood"
                         subtitle="Stars & Studios"
-                        icon={Sparkles}
+                        icon={Icons.Hollywood}
                     />
                 </motion.div>
 
@@ -152,7 +152,7 @@ function GameLanding() {
                                 <span className="mr-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                                 Daily Challenge
                                 <span className="ml-2 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                                    <Play className="h-3 w-3 fill-current" />
+                                    <Icons.Play className="h-3 w-3 fill-current" />
                                 </span>
                             </span>
                         </Button>
@@ -194,7 +194,7 @@ function ModeCard({ href, title, subtitle, icon: Icon, disabled }) {
                 {/* Play Prompt */}
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors duration-300">
                     <span>Play Now</span>
-                    <Play className="h-3 w-3 fill-current" />
+                    <Icons.Play className="h-3 w-3 fill-current" />
                 </div>
             </div>
         </SpotlightCard>

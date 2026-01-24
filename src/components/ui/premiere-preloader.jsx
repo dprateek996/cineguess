@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Icons } from "@/components/Icons";
 
 export default function PremierePreloader({ onComplete }) {
     const [stage, setStage] = useState("intro"); // intro -> countdown -> reveal -> done
@@ -83,8 +84,8 @@ export default function PremierePreloader({ onComplete }) {
                                         animate={{ rotateY: [0, 10, -10, 0] }}
                                         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                                     >
-                                        <span className="text-7xl md:text-8xl filter drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                                            🎬
+                                        <span className="text-7xl md:text-8xl filter drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] inline-block">
+                                            <Icons.Projector className="w-24 h-24 md:w-32 md:h-32 text-white/90" />
                                         </span>
                                     </motion.div>
 

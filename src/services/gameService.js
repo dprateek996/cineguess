@@ -180,11 +180,13 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
     let movie;
 
     // DIFFICULTY LOGIC
-    // Rounds 1-5: Easy (Pick from Top 30 Popular)
-    // Rounds 6-15: Medium (Pick from Top 100 Popular)
+    // Rounds 1-2: Very Easy (Pick from Top 15 Popular) - Immediate recognition
+    // Rounds 3-6: Easy (Pick from Top 40 Popular)
+    // Rounds 7-15: Medium (Pick from Top 100 Popular)
     // Rounds 15+: Hard/Random (Any unplayed)
     let takePool = 0;
-    if (round <= 5) takePool = 30;
+    if (round <= 2) takePool = 15;
+    else if (round <= 6) takePool = 40;
     else if (round <= 15) takePool = 100;
 
     if (takePool > 0) {
@@ -213,9 +215,17 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
         })
     }
 
-    // ADDITIONAL SAFEGUARD: Verify the selected movie has valid images
-    if (movie && (!movie.posterPath || !movie.backdropPath)) {
-        console.warn(`Movie ${movie.title} has missing images, retrying...`);
+    // ADDITIONAL SAFEGUARD: Verify the selected movie has valid images AND valid hints
+    const hasValidImages = movie && movie.posterPath && movie.backdropPath;
+
+    // Check for placeholder hints
+    const hint = movie?.hints?.level2Dialogue || '';
+    const hasPlaceholderHint = hint.startsWith('A memorable quote') ||
+        hint.startsWith('A famous quote') ||
+        hint.includes('film.'); // Generic pattern often used in fallbacks
+
+    if (movie && (!hasValidImages || hasPlaceholderHint)) {
+        console.warn(`Skipping ${movie.title} (Missing images or placeholder hints)`);
         if (retryCount < MAX_RETRIES) {
             return getNextMovie(industry, [...playedMovieIds, movie.id], retryCount + 1, round);
         }
@@ -379,7 +389,7 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
                 message: '❌ Wrong! You lost a life.',
                 currentRound,
                 currentStage,
-                correctAnswer: session.movie.title,
+                // Do NOT expose correctAnswer here to prevent title leak
                 gameOver: false, // Frontend decides based on lives
             }
         }

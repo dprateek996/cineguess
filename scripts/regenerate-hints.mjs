@@ -24,7 +24,7 @@ const prisma = new PrismaClient({ adapter })
 // Gemini AI setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 const geminiModel = process.env.GEMINI_API_KEY
-    ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    ? genAI.getGenerativeModel({ model: 'gemini-flash-latest' })
     : null
 
 // Generate hints prompt - improved for better dialogue quotes
@@ -57,29 +57,46 @@ Now generate hints for "${movieTitle}" (${releaseYear}):
 `
 }
 
-// Generate AI hints using Gemini
+
+// Generate AI hints using Gemini with retry logic
 async function generateHints(movieTitle, releaseYear, industry) {
     if (!geminiModel) {
         throw new Error('Gemini API key not configured')
     }
 
     const prompt = generateHintsPrompt(movieTitle, releaseYear, industry)
-    const result = await geminiModel.generateContent(prompt)
-    const response = result.response.text()
 
-    // Clean the response
-    const cleanedResponse = response
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim()
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const result = await geminiModel.generateContent(prompt)
+            const response = result.response.text()
 
-    const hints = JSON.parse(cleanedResponse)
+            // Clean the response
+            const cleanedResponse = response
+                .replace(/```json\n?/g, '')
+                .replace(/```\n?/g, '')
+                .trim()
 
-    if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
-        throw new Error('Invalid hint structure')
+            const hints = JSON.parse(cleanedResponse)
+
+            if (!hints.dialogue || !hints.emoji || !hints.trivia || !hints.location) {
+                throw new Error('Invalid hint structure')
+            }
+
+            return hints
+
+        } catch (error) {
+            const isRateLimit = error.message.includes('429') || error.message.includes('Quota exceeded')
+
+            if (isRateLimit && attempt < 3) {
+                const waitTime = attempt * 10000 // 10s, 20s
+                console.log(`     ⚠️ Rate limit hit. Waiting ${waitTime / 1000}s before retry ${attempt + 1}...`)
+                await new Promise(resolve => setTimeout(resolve, waitTime))
+                continue
+            }
+            throw error
+        }
     }
-
-    return hints
 }
 
 // Check if hint needs regeneration (contains placeholder text)
@@ -91,6 +108,7 @@ function needsRegeneration(hint) {
         /^A famous quote from this/i,
         /\d{4} film$/,
         /^🎬🎭🎪$/,
+        /^Dialogue coming soon/i
     ]
 
     const dialogue = hint.level2Dialogue || ''
@@ -133,12 +151,12 @@ async function regenerateHints() {
         const shouldRegenerate = forceAll || needsRegeneration(movie.hints)
 
         if (!shouldRegenerate) {
-            console.log(`  ⏭️  Skip: ${movie.title} (already has valid hints)`)
             skipped++
+            process.stdout.write('.') // Minimal output for skips
             continue
         }
 
-        console.log(`  🔄 Regenerating: ${movie.title} (${movie.releaseYear})`)
+        console.log(`\n  🔄 Regenerating: ${movie.title} (${movie.releaseYear})`)
 
         try {
             const hints = await generateHints(movie.title, movie.releaseYear, movie.industry)
@@ -176,15 +194,15 @@ async function regenerateHints() {
             console.log(`     ✅ "${hints.dialogue.substring(0, 50)}..."`)
             regenerated++
 
-            // Rate limiting
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            // Rate limiting - INCREASED to 4s for safety
+            await new Promise(resolve => setTimeout(resolve, 4000))
         } catch (error) {
             console.log(`     ❌ Failed: ${error.message}`)
             failed++
         }
     }
 
-    console.log('\n' + '═'.repeat(40))
+    console.log('\n\n' + '═'.repeat(40))
     console.log('📊 Results:')
     console.log(`  ✅ Regenerated: ${regenerated}`)
     console.log(`  ⏭️  Skipped: ${skipped}`)

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Icons } from "@/components/Icons";
 
 export default function GameIntro({ onComplete, industry }) {
     const [phase, setPhase] = useState("PLAYING");

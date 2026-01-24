@@ -26,8 +26,8 @@ const SOUNDS = {
     tick: "https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3",
     // Game start
     start: "https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3",
-    // Game over
-    gameOver: "https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3",
+    // Game over - removed per user request (wind sound)
+    gameOver: "",
     // Click/UI interaction
     click: "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3",
 };

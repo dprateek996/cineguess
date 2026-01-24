@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, use, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import html2canvas from "html2canvas";
 import { useSound } from "@/hooks/useSound";
 import GameIntro from "@/components/ui/game-intro";
 import SceneImage from "@/components/ui/scene-image";
@@ -12,22 +13,23 @@ import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
 import { FilmGrain } from "@/components/ui/film-grain";
 import Link from "next/link";
-import { Film, Clapperboard, Sparkles, Globe, ImageIcon, Zap, XCircle, PartyPopper, Star, Trophy, Check } from "lucide-react";
+import { Icons } from "@/components/Icons";
+import { ImageIcon, Zap, XCircle } from "lucide-react";
 
 const industryConfig = {
     BOLLYWOOD: {
         name: "Bollywood",
-        Icon: Film,
+        Icon: Icons.Bollywood,
         confettiColors: ["#f97316", "#fbbf24", "#ef4444", "#ec4899"],
     },
     HOLLYWOOD: {
         name: "Hollywood",
-        Icon: Clapperboard,
+        Icon: Icons.Hollywood,
         confettiColors: ["#3b82f6", "#06b6d4", "#8b5cf6", "#fbbf24"],
     },
     ANIME: {
         name: "Anime",
-        Icon: Sparkles,
+        Icon: Icons.Anime,
         confettiColors: ["#a855f7", "#ec4899", "#f472b6", "#c084fc"],
     },
 };
@@ -48,6 +50,7 @@ export default function DailyGamePage({ params }) {
     const [showShareCard, setShowShareCard] = useState(false);
     const [alreadyPlayed, setAlreadyPlayed] = useState(false);
     const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const config = industryConfig[industry] || industryConfig.HOLLYWOOD;
 
@@ -120,10 +123,11 @@ export default function DailyGamePage({ params }) {
 
                 import("canvas-confetti").then((confetti) => {
                     confetti.default({
-                        particleCount: 200,
-                        spread: 100,
+                        particleCount: 30,
+                        spread: 40,
                         origin: { y: 0.6 },
                         colors: config.confettiColors,
+                        disableForReducedMotion: true,
                     });
                 });
 
@@ -214,7 +218,7 @@ export default function DailyGamePage({ params }) {
                     className="text-center rounded-3xl p-10 max-w-lg relative z-10 bg-zinc-900/40 backdrop-blur-md border border-white/10 shadow-2xl"
                 >
                     <div className="flex justify-center mb-6">
-                        <Check className="w-20 h-20 text-emerald-500" />
+                        <Icons.Success className="w-20 h-20 text-emerald-500" />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">
                         Already Played Today!
@@ -256,6 +260,249 @@ export default function DailyGamePage({ params }) {
         );
     }
 
+    const getCinephileRating = (score) => {
+        if (score >= 300) return "Cinematic Legend";
+        if (score >= 200) return "Visionary Director";
+        if (score >= 100) return "Lead Actor";
+        return "Background Extra"; // 0 pts
+    };
+
+    const getGuessTimeline = () => {
+        const stage = won ? currentStage : 4;
+
+        // 1. Poster, 2. Dialogue, 3. Scene
+        return (
+            <div className="flex items-center gap-3 justify-center my-6">
+                {/* Stage 1: Poster */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 1 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 1 && won ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Bollywood className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+                <div className="w-8 h-px bg-white/20 rounded-full" />
+
+                {/* Stage 2: Dialogue */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 2 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 2 && won ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Classic className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+                <div className="w-8 h-px bg-white/20 rounded-full" />
+
+                {/* Stage 3: Scene */}
+                <div className={`flex flex-col items-center gap-2 group ${stage >= 3 ? 'opacity-100' : 'opacity-30'}`}>
+                    <div className={`p-2.5 rounded-full ring-1 ring-white/5 shadow-lg transition-all duration-500 ${stage === 3 && won ? 'bg-emerald-500/20 text-emerald-400 ring-emerald-500/50 shadow-emerald-500/20' : 'bg-white/5 text-white/60'}`}>
+                        <Icons.Hollywood className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+
+                {/* Result Icon */}
+                <div className="ml-3 pl-3 border-l border-white/10">
+                    {won ? (
+                        <div className="p-1 rounded-full bg-emerald-500/10">
+                            <Icons.Success className="w-5 h-5 text-emerald-400" />
+                        </div>
+                    ) : (
+                        <div className="p-1 rounded-full bg-red-500/10">
+                            <Icons.Fail className="w-5 h-5 text-red-400/80" />
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    if (gameOver && dailyData) {
+        const score = won ? (4 - currentStage) * 100 : 0;
+        const rating = getCinephileRating(score);
+        const movieTitle = dailyData.movie?.title || "Unknown Movie";
+
+        const handleDownloadCard = async () => {
+            setIsDownloading(true);
+            const cardElement = document.getElementById('daily-stat-card');
+            if (cardElement) {
+                try {
+                    const canvas = await html2canvas(cardElement, {
+                        backgroundColor: null,
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                    });
+                    const image = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = `cineguess-daily-${Date.now()}.png`;
+                    link.click();
+                } catch (error) {
+                    console.error('Failed to capture card:', error);
+                }
+            }
+            setIsDownloading(false);
+        };
+
+        const shareText = `I just solved the Daily ${config.name} Challenge! 🎞️✨\n\nMovie: ${movieTitle}\nScore: ${score} pts\nRank: ${rating} 👑\n\n#CineGuessDaily`;
+
+        // Construct the viral share URL
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cineguess.com';
+        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(dailyData.movie?.posterPath || '')}&mode=Daily`;
+        const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
+
+        const containerVariants = {
+            hidden: { opacity: 0 },
+            visible: {
+                opacity: 1,
+                transition: {
+                    when: "beforeChildren",
+                    staggerChildren: 0.15
+                }
+            }
+        };
+
+        const itemVariants = {
+            hidden: { opacity: 0, y: 20 },
+            visible: {
+                opacity: 1,
+                y: 0,
+                transition: { type: "spring", stiffness: 300, damping: 24 }
+            }
+        };
+
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden font-sans selection:bg-amber-500/30">
+                {/* Cinematic Backdrop */}
+                {dailyData.movie?.backdropPath && (
+                    <div className="absolute inset-0 z-0">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 1.2 }}
+                            animate={{ opacity: 1, scale: 1.1 }}
+                            transition={{ duration: 2, ease: "easeOut" }}
+                            className="w-full h-full relative"
+                        >
+                            <img
+                                src={`https://image.tmdb.org/t/p/original${dailyData.movie.backdropPath}`}
+                                alt="Background"
+                                className="w-full h-full object-cover opacity-20 blur-2xl grayscale"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                        </motion.div>
+                    </div>
+                )}
+                <FilmGrain />
+
+                <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="w-full max-w-md relative z-10 perspective-1000"
+                >
+                    {/* The Viral Stat Card */}
+                    <div id="daily-stat-card" className="bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
+                        {/* Card Header: Rating */}
+                        <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent p-8 pb-6 text-center border-b border-white/5 relative overflow-hidden">
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+                            <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-medium mb-3">Daily Rank</p>
+
+                            {/* Text Masking & Glow */}
+                            <div className="relative inline-block">
+                                <h2 className="text-3xl sm:text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                                    {rating}
+                                </h2>
+                                <div className="absolute -inset-4 bg-amber-400/20 blur-3xl opacity-20 rounded-full" />
+                            </div>
+                        </motion.div>
+
+                        <div className="p-8 pt-6 flex flex-col items-center">
+                            {/* Movie Reveal with 3D Tilt */}
+                            <motion.div
+                                variants={itemVariants}
+                                className="mb-8 relative group cursor-default"
+                                whileHover={{ scale: 1.02, rotateX: 5, rotateY: 5 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                            >
+                                <div className="absolute -inset-4 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <div className="relative w-36 aspect-[2/3] rounded-lg overflow-hidden ring-1 ring-white/20 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] group-hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] transition-shadow duration-500">
+                                    {dailyData.movie?.posterPath ? (
+                                        <img
+                                            src={`https://image.tmdb.org/t/p/w500${dailyData.movie.posterPath}`}
+                                            alt={movieTitle}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                                            <Icons.Daily className="w-10 h-10 text-white/20" />
+                                        </div>
+                                    )}
+                                    {/* Glass Shine */}
+                                    <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+                                    <div className="absolute -inset-full top-0 block bg-gradient-to-b from-transparent to-white/10 opacity-20 transform -translate-y-1/2 group-hover:translate-y-full transition-transform duration-1000 ease-in-out" />
+                                </div>
+                            </motion.div>
+
+                            <motion.h3 variants={itemVariants} className="text-center text-xl font-bold text-white mb-1.5 leading-tight tracking-tight">
+                                {movieTitle}
+                            </motion.h3>
+                            <motion.p variants={itemVariants} className="text-[10px] text-white/30 uppercase tracking-widest mb-8 font-medium">
+                                {config.name} Daily
+                            </motion.p>
+
+                            {/* Guess Path Timeline - Minimalist Audit */}
+                            <motion.div variants={itemVariants} className="w-full mb-8 relative">
+                                <p className="sr-only">Guess Timeline</p>
+                                {getGuessTimeline()}
+                            </motion.div>
+
+                            {/* Stats Grid - Ghost Containers */}
+                            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 w-full mb-8">
+                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Score</p>
+                                    <p className="text-2xl font-bold text-white tabular-nums tracking-tight">{score}</p>
+                                </div>
+                                <div className="group relative rounded-2xl p-4 text-center border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                    <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1 group-hover:text-white/60 transition-colors">Result</p>
+                                    <p className={`text-2xl font-bold tabular-nums tracking-tight ${won ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {won ? 'WON' : 'LOST'}
+                                    </p>
+                                </div>
+                            </motion.div>
+
+                            {/* Actions - Contrast Balance */}
+                            <motion.div variants={itemVariants} className="flex flex-col w-full gap-3">
+                                <a
+                                    href={shareUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 hover:border-sky-500/40 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                >
+                                    Share Result
+                                </a>
+
+                                <button
+                                    onClick={handleDownloadCard}
+                                    disabled={isDownloading}
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                >
+                                    {isDownloading ? 'Capturing...' : (
+                                        <>
+                                            <Icons.Download className="w-4 h-4" /> Save Image
+                                        </>
+                                    )}
+                                </button>
+
+                                <Link
+                                    href="/daily"
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-amber-400 hover:bg-amber-300 text-black rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all shadow-[0_0_20px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.6)] hover:scale-[1.02]"
+                                >
+                                    <Icons.Play className="w-3 h-3 fill-current" /> Back to Daily
+                                </Link>
+                            </motion.div>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
     if (!dailyData) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
@@ -266,7 +513,7 @@ export default function DailyGamePage({ params }) {
                     className="text-center rounded-2xl p-8 max-w-md relative z-10 bg-zinc-900/40 backdrop-blur-md border border-white/10"
                 >
                     <div className="flex justify-center mb-6">
-                        <XCircle className="w-16 h-16 text-muted-foreground" strokeWidth={1.5} />
+                        <Icons.Fail className="w-16 h-16 text-muted-foreground" strokeWidth={1.5} />
                     </div>
                     <h2 className="text-xl font-bold text-white mb-2">No Challenge Today</h2>
                     <p className="text-muted-foreground mb-6 text-sm">The daily challenge for {config.name} isn't available yet.</p>
@@ -299,97 +546,12 @@ export default function DailyGamePage({ params }) {
 
                 <div className="flex-1 relative flex items-center justify-center p-4">
                     <AnimatePresence mode="wait">
-                        {gameOver ? (
-                            <motion.div
-                                key="game-over"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="z-50 text-center rounded-3xl p-10 max-w-lg w-full relative -mt-10 bg-zinc-900/80 backdrop-blur-xl border border-white/10 shadow-2xl"
-                            >
-                                <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 0.2, type: "spring" }}
-                                    className="flex justify-center mb-6"
-                                >
-                                    {won ?
-                                        <Trophy className="w-24 h-24 text-yellow-400 drop-shadow-2xl" strokeWidth={1.5} /> :
-                                        <config.Icon className="w-24 h-24 text-white/20" strokeWidth={1.5} />
-                                    }
-                                </motion.div>
-
-                                <h2 className="text-4xl font-extrabold mb-2 text-white tracking-tight">
-                                    {won ? "You Got It!" : "Better Luck Next Time"}
-                                </h2>
-
-                                <p className="text-muted-foreground mb-8 text-xs uppercase tracking-widest">
-                                    Daily {config.name} Challenge
-                                </p>
-
-                                <div className="rounded-xl p-6 mb-8 border border-white/5 bg-black/60 shadow-inner">
-                                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-2 font-bold">The movie was</p>
-                                    <p className="text-2xl font-bold text-white">{dailyData.movie?.title}</p>
-                                </div>
-
-                                <div className="flex items-center justify-center gap-2 mb-8">
-                                    <span className="text-muted-foreground text-sm">Solved in</span>
-                                    <div className={`px-4 py-1.5 rounded-full border font-bold text-xs uppercase tracking-wider ${won ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                        {won ? `Stage ${currentStage}` : 'Failed'}
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                    <button
-                                        onClick={() => setShowShareCard(true)}
-                                        className="px-8 py-3 bg-white/10 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-white/20 transition-colors"
-                                    >
-                                        Share Result
-                                    </button>
-                                    <Link href="/daily" className="px-8 py-3 bg-primary text-black rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-105 transition-transform">
-                                        Back to Daily
-                                    </Link>
-                                </div>
-                            </motion.div>
-                        ) : showCorrectAnimation ? (
-                            <motion.div
-                                key="correct-overlay"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-40 flex items-center justify-center"
-                            >
-                                <div className="text-center relative z-10">
-                                    <motion.div
-                                        initial={{ rotate: -10, scale: 0 }}
-                                        animate={{ rotate: 0, scale: 1 }}
-                                        className="inline-block mb-4"
-                                    >
-                                        <PartyPopper className="w-24 h-24 text-primary" />
-                                    </motion.div>
-                                    <h2 className="text-6xl font-extrabold text-white drop-shadow-2xl tracking-tighter">Correct!</h2>
-                                </div>
-                            </motion.div>
-                        ) : null}
-
+                        {/* Game Content Rendered Here (Replaced original conditional block since gameOver is handled early now) */}
                         <motion.div
                             key="stage-content"
-                            className={`w-full h-full flex items-center justify-center transition-all duration-700 ${gameOver ? 'opacity-30 blur-sm scale-95 pointer-events-none absolute inset-0' : ''}`}
+                            className="w-full h-full flex items-center justify-center transition-all duration-700"
                         >
-                            {gameOver || won ? (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="relative h-full aspect-[2/3] max-h-[70vh] mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/10"
-                                >
-                                    <img
-                                        src={`https://image.tmdb.org/t/p/w780${dailyData.movie?.posterPath}`}
-                                        alt={dailyData.movie?.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </motion.div>
-                            ) : (
-                                getStageContent()
-                            )}
+                            {getStageContent()}
                         </motion.div>
                     </AnimatePresence>
                 </div>

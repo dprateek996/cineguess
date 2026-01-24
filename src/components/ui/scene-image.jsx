@@ -84,9 +84,9 @@ export default function SceneImage({
                     }}
                 />
 
-                {/* Cinematic Letterbox Bars (10%) */}
-                <div className="absolute top-0 left-0 right-0 h-[10%] bg-black z-10" />
-                <div className="absolute bottom-0 left-0 right-0 h-[10%] bg-black z-10" />
+                {/* Cinematic Letterbox Bars - Increased to 15% to hide potential titles */}
+                <div className="absolute top-0 left-0 right-0 h-[15%] bg-gradient-to-b from-black via-black to-transparent z-10" />
+                <div className="absolute bottom-0 left-0 right-0 h-[25%] bg-gradient-to-t from-black via-black/90 to-transparent z-10" />
 
                 {/* Vignette (Inner Shadow) */}
                 <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_120px_rgba(0,0,0,0.9)]" />
