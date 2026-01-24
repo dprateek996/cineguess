@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import { validateGuess, calculateSimilarity } from './validationService'
 import { seedMovies } from './movieSeeder'
 import { STATIC_HINTS } from '../data/static-hints'
+import { FALLBACK_MOVIES } from '../data/fallback-movies'
 
 /**
  * CineQuest Game Service - Endless & Rapid Fire Modes
@@ -131,60 +132,79 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
         backdropPath: { not: '' },
     }
 
+    let movie = null;
 
-    let count = await prisma.movie.count({ where })
+    try {
+        let count = await prisma.movie.count({ where })
 
-    if (count === 0) {
-        console.log(`[GameService] No movies found for ${industry}. Seeding initial batch...`);
-        const seededCount = await seedMovies(industry, 5);
-        console.log(`[GameService] Seeded ${seededCount} movies.`);
+        if (count === 0) {
+            console.log(`[GameService] No movies found for ${industry}. Seeding initial batch...`);
+            const seededCount = await seedMovies(industry, 5);
+            console.log(`[GameService] Seeded ${seededCount} movies.`);
 
-        if (seededCount === 0) {
-            return null;
+            if (seededCount > 0) {
+                // Update count after seeding
+                count = await prisma.movie.count({ where });
+            }
+        } else if (count < 10) {
+            console.log(`[GameService] Low movie count (${count}). Triggering background seed.`);
+            seedMovies(industry, 5).catch(err => console.error("Background seed failed:", err));
         }
-        // Update count after seeding
-        count = await prisma.movie.count({ where });
-    } else if (count < 10) {
-        console.log(`[GameService] Low movie count (${count}). Triggering background seed.`);
-        seedMovies(industry, 5).catch(err => console.error("Background seed failed:", err));
+
+        if (count > 0) {
+            // DIFFICULTY LOGIC
+            let takePool = 0;
+            if (round <= 2) takePool = 15;
+            else if (round <= 6) takePool = 40;
+            else if (round <= 15) takePool = 100;
+
+            if (takePool > 0) {
+                // Fetch candidates sorted by popularity
+                const candidates = await prisma.movie.findMany({
+                    where,
+                    orderBy: { popularity: 'desc' },
+                    take: takePool,
+                    include: { hints: true }
+                });
+
+                if (candidates.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * candidates.length);
+                    movie = candidates[randomIndex];
+                }
+            }
+
+            // Fallback: If no candidate found (e.g. pool is empty) or mode is Random
+            if (!movie) {
+                const skip = Math.floor(Math.random() * count)
+                movie = await prisma.movie.findFirst({
+                    where,
+                    skip,
+                    include: { hints: true },
+                })
+            }
+        }
+    } catch (dbError) {
+        console.error(`[GameService] Database/Seeding Error for ${industry}:`, dbError);
+        movie = null; // Ensure we fall through to the static fallback
     }
 
-    let movie;
-
-    // DIFFICULTY LOGIC
-    // Rounds 1-2: Very Easy (Pick from Top 15 Popular) - Immediate recognition
-    // Rounds 3-6: Easy (Pick from Top 40 Popular)
-    // Rounds 7-15: Medium (Pick from Top 100 Popular)
-    // Rounds 15+: Hard/Random (Any unplayed)
-    let takePool = 0;
-    if (round <= 2) takePool = 15;
-    else if (round <= 6) takePool = 40;
-    else if (round <= 15) takePool = 100;
-
-    if (takePool > 0) {
-        // Fetch candidates sorted by popularity
-        const candidates = await prisma.movie.findMany({
-            where,
-            orderBy: { popularity: 'desc' },
-            take: takePool,
-            include: { hints: true }
-        });
-
-        if (candidates.length > 0) {
-            // Pick a random movie from the popular pool
-            const randomIndex = Math.floor(Math.random() * candidates.length);
-            movie = candidates[randomIndex];
-        }
-    }
-
-    // Fallback: If no candidate found (e.g. pool is empty) or mode is Random
+    // FINAL FALLBACK: If DB is empty/failing, use hardcoded data
     if (!movie) {
-        const skip = Math.floor(Math.random() * count)
-        movie = await prisma.movie.findFirst({
-            where,
-            skip,
-            include: { hints: true },
-        })
+        console.warn(`[GameService] EMERGENCY FALLBACK: Using static data for ${industry}`);
+        const fallbackList = FALLBACK_MOVIES[industry] || FALLBACK_MOVIES.HOLLYWOOD;
+        const randomFallback = fallbackList[Math.floor(Math.random() * fallbackList.length)];
+
+        // Mock the Prisma object structure
+        movie = {
+            id: `fallback-${randomFallback.tmdbId}`,
+            tmdbId: randomFallback.tmdbId,
+            title: randomFallback.title,
+            releaseYear: randomFallback.releaseYear,
+            industry: industry,
+            posterPath: randomFallback.posterPath,
+            backdropPath: randomFallback.backdropPath,
+            hints: randomFallback.hints
+        };
     }
 
     // ADDITIONAL SAFEGUARD: Verify the selected movie has valid images AND valid hints
@@ -198,7 +218,8 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
 
     if (movie && (!hasValidImages || hasPlaceholderHint)) {
         console.warn(`Skipping ${movie.title} (Missing images or placeholder hints)`);
-        if (retryCount < MAX_RETRIES) {
+        // Don't retry endlessly on fallback data
+        if (!movie.id.toString().startsWith('fallback-') && retryCount < MAX_RETRIES) {
             return getNextMovie(industry, [...playedMovieIds, movie.id], retryCount + 1, round);
         }
     }
