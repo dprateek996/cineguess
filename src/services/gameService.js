@@ -100,31 +100,39 @@ function getHintsForRound(movie, maxHints) {
 
 // Calculate score based on performance with stage-based multipliers
 function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic', maxTime = 15) {
-    const baseScore = 100 * round
+    const BASE_SCORE = 100
 
-    // Stage-based multiplier (earlier stage = more points)
-    // Stage 1 (Poster): 4x, Stage 2 (Dialogue): 2x, Stage 3 (Scene): 1x
-    const stageMultipliers = { 1: 4, 2: 2, 3: 1 }
-    const stageMultiplier = stageMultipliers[stage] || 1
+    // Stage Penalty (Deductive instead of Multiplicative)
+    // Stage 1: 100% (100pts), Stage 2: 60% (60pts), Stage 3: 30% (30pts)
+    const stageFactors = { 1: 1.0, 2: 0.6, 3: 0.3 }
+    const stageFactor = stageFactors[stage] || 1.0
 
-    // Streak bonus
-    let streakMultiplier = 1
-    if (round >= 5) streakMultiplier = 1.5
-    if (round >= 10) streakMultiplier = 2
+    // Round Bonus: Linear progression (+10 pts per round)
+    // Helps high rounds feel valuable without inflating to millions
+    const roundBonus = (round - 1) * 10
 
-    // Rapid Fire specific bonuses
+    let total = Math.floor((BASE_SCORE * stageFactor) + roundBonus)
+
+    // Rapid Fire Bonuses
     if (mode === 'rapidfire' && timeRemaining !== null) {
-        // Speed Bonus: 3x if guessed within first 3 seconds
+        // Speed Bonus: Flat +50 points if guessed fast (<=3s used)
         const timeUsed = maxTime - timeRemaining
-        const speedMultiplier = timeUsed <= 3 ? 3 : 1
+        const isSpeedBonus = timeUsed <= 3
 
-        // Time bonus increases with remaining time
-        const timeBonus = timeRemaining * 5
+        if (isSpeedBonus) {
+            total += 50
+        }
 
-        return Math.floor((baseScore + timeBonus) * speedMultiplier * streakMultiplier)
+        // Time Bonus: Small bonus for remaining time (+2 pts per second)
+        total += (timeRemaining * 2)
     }
 
-    return Math.floor(baseScore * stageMultiplier * streakMultiplier)
+    // Streak Bonus: Small flat bonus (+10 pts) for every 5 streak
+    if (round % 5 === 0) {
+        total += 10
+    }
+
+    return Math.floor(total)
 }
 
 // Get a random movie, avoiding already played ones

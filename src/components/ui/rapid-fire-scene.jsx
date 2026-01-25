@@ -126,15 +126,15 @@ export default function RapidFireScene({
             <AnimatePresence>
                 {timeLeft >= maxTime - 3 && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-8 left-1/2 -translate-x-1/2 z-30"
+                        initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                        className="absolute top-32 left-0 right-0 mx-auto w-fit z-30"
                     >
-                        <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 backdrop-blur-sm">
-                            <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                                <span className="text-lg">⚡</span>
-                                3x Speed Bonus
+                        <div className="flex items-center justify-center px-6 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-emerald-500/50 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)]">
+                            <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 drop-shadow-md">
+                                <span className="text-lg animate-pulse">⚡</span>
+                                <span>Speed Bonus: +50 Pts</span>
                             </span>
                         </div>
                     </motion.div>

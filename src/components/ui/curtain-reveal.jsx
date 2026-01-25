@@ -6,6 +6,17 @@ export default function CurtainReveal({ children }) {
     const [phase, setPhase] = useState("CLOSED");
 
     useEffect(() => {
+        // Check if user has already seen the intro in this session
+        const hasSeenIntro = typeof window !== "undefined" && sessionStorage.getItem("cinequest_intro_seen");
+
+        if (hasSeenIntro) {
+            setPhase("REVEAL");
+            return;
+        }
+
+        // Set flag for future visits
+        sessionStorage.setItem("cinequest_intro_seen", "true");
+
         const t1 = setTimeout(() => setPhase("OPENING"), 400);
         const t2 = setTimeout(() => setPhase("SPOTLIGHT"), 2000);
         const t3 = setTimeout(() => setPhase("REVEAL"), 3200);

@@ -463,8 +463,11 @@ export default function PlayPage({ params }) {
                         </div>
                     </div>
 
-                    <Link href="/" className="inline-block mt-12 text-muted-foreground hover:text-white transition-colors text-sm uppercase tracking-widest">
-                        ← Back to Menu
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 mt-12 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 group"
+                    >
+                        <span className="text-xs font-bold uppercase tracking-widest">Return to Menu</span>
                     </Link>
                 </motion.div>
             </div>
@@ -924,7 +927,7 @@ export default function PlayPage({ params }) {
                                     <span className="text-white">+{result?.roundScore || 0} points</span>
                                     {result?.gotSpeedBonus && (
                                         <span className="flex items-center gap-1 text-emerald-400">
-                                            <Zap className="w-3 h-3 fill-current" /> 3x
+                                            <Zap className="w-3 h-3 fill-current" /> +50
                                         </span>
                                     )}
                                 </div>

@@ -112,7 +112,7 @@ export default function MinimalHUD({
             <div className="flex items-center gap-4">
                 <Link
                     href="/"
-                    className="text-neutral-500 hover:text-white text-sm transition-colors"
+                    className="text-white/50 hover:text-white text-sm transition-colors font-medium"
                 >
                     ← Exit
                 </Link>
