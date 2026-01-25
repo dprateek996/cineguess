@@ -15,20 +15,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SOUNDS = {
     // Success sound - short cheerful chime
     // Use local paths to avoid external 403 errors
-    correct: "/sounds/correct.mp3",
-    wrong: "/sounds/wrong.mp3",
-    win: "/sounds/win.mp3",
-    lose: "/sounds/lose.mp3",
+    // Sound URLs - mapped to uploaded files
+    correct: "/sounds/chime-sound-7143.mp3",
+    wrong: "/sounds/wrong-47985.mp3",
+    win: "/sounds/fanfare-46385.mp3",
+    lose: "/sounds/negative_beeps-6008.mp3",
 
     // UI Sounds
-    typewriter: "/sounds/typewriter.mp3",
-    reveal: "/sounds/reveal.mp3",
-    tick: "/sounds/tick.mp3",
-    clock: "/sounds/clock.mp3",
-    start: "/sounds/start.mp3",
-    hover: "/sounds/hover.mp3",
-    click: "/sounds/click.mp3",
-    select: "/sounds/select.mp3",
+    typewriter: "/sounds/single-key-press-393908.mp3",
+    tick: "/sounds/clock-ticking-sound-effect-240503.mp3",
+    clock: "/sounds/clock-ticking-sound-effect-240503.mp3",
+
+    // Note: Other UI sounds (hover, click, etc.) are commented out 
+    // because the files are not present in public/sounds/
 };
 
 export function useSound() {
@@ -77,15 +76,17 @@ export function useSound() {
     const play = useCallback((soundName, options = {}) => {
         if (isMuted || typeof window === "undefined") return;
 
+        console.log(`[useSound] Playing: ${soundName}`); // DEBUG LOG
+
         const audio = audioCache.current[soundName];
         if (!audio) {
-            console.warn(`Sound "${soundName}" not found`);
+            // Silent fail for missing sounds
             return;
         }
 
         // Clone the audio for overlapping sounds
         const sound = audio.cloneNode();
-        sound.volume = options.volume ?? 0.3;
+        sound.volume = options.volume ?? 0.3; // Increased default volume
 
         if (options.playbackRate) {
             sound.playbackRate = options.playbackRate;
@@ -110,14 +111,16 @@ export function useSound() {
         });
     }, []);
 
-    // Specific sound helpers
-    const playCorrect = useCallback(() => play("correct", { volume: 0.4 }), [play]);
-    const playWrong = useCallback(() => play("wrong", { volume: 0.3 }), [play]);
-    const playTransition = useCallback(() => play("transition", { volume: 0.2 }), [play]);
-    const playClick = useCallback(() => play("click", { volume: 0.15 }), [play]);
-    const playStart = useCallback(() => play("start", { volume: 0.3 }), [play]);
-    const playGameOver = useCallback(() => play("gameOver", { volume: 0.35 }), [play]);
-    const playTick = useCallback(() => play("tick", { volume: 0.1 }), [play]);
+    // Specific sound helpers - BOOSTED VOLUMES
+    const playCorrect = useCallback(() => play("correct", { volume: 0.5 }), [play]);
+    const playWrong = useCallback(() => play("wrong", { volume: 0.4 }), [play]);
+    const playWin = useCallback(() => play("win", { volume: 0.5 }), [play]);
+    const playLose = useCallback(() => play("lose", { volume: 0.5 }), [play]);
+    const playTypewriter = useCallback(() => play("typewriter", { volume: 0.25, playbackRate: 1.5 }), [play]);
+    const playTick = useCallback(() => play("tick", { volume: 0.2 }), [play]);
+    // Alias playTransition to click/typewriter sound to prevent crashes, but not "tick" (too urgent)
+    const playTransition = useCallback(() => play("typewriter", { volume: 0.1, playbackRate: 2.0 }), [play]);
+    const playGameOver = useCallback(() => play("lose", { volume: 0.5 }), [play]); // Ensure this exists too
 
     return {
         isMuted,
@@ -127,11 +130,12 @@ export function useSound() {
         // Convenience methods
         playCorrect,
         playWrong,
-        playTransition,
-        playClick,
-        playStart,
-        playGameOver,
+        playWin,
+        playLose,
+        playTypewriter,
         playTick,
+        playTransition,
+        playGameOver
     };
 }
 

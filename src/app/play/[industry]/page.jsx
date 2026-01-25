@@ -806,9 +806,9 @@ export default function PlayPage({ params }) {
                     <motion.button
                         variants={itemVariants}
                         onClick={() => window.location.href = '/'}
-                        className="w-full text-center mt-8 text-[10px] uppercase tracking-[0.2em] text-white/20 hover:text-white/40 transition-colors font-medium"
+                        className="w-full mt-4 group relative px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
-                        Return to Menu
+                        <span className="text-xs font-bold uppercase tracking-widest">Return to Menu</span>
                     </motion.button>
 
 

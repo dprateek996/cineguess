@@ -71,6 +71,7 @@ export default function RapidFireScene({
     return (
         <div className={`relative w-full h-full overflow-hidden ${className}`}>
             {/* Movie Scene Image */}
+            {/* Movie Scene Image */}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={backdropPath}
@@ -81,16 +82,18 @@ export default function RapidFireScene({
                     className="absolute inset-0"
                 >
                     {backdropPath ? (
-                        <img
-                            src={`https://image.tmdb.org/t/p/original${backdropPath}`}
-                            alt="Movie Scene"
-                            className="w-full h-full object-cover transition-[filter] duration-300"
-                            style={{
-                                filter: `blur(${currentBlur}px)`,
-                                transform: "scale(1.05)", // Slight scale to hide blur edges
-                            }}
-                            onLoad={handleImageLoad}
-                        />
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-950">
+                            <img
+                                src={`https://image.tmdb.org/t/p/original${backdropPath}`}
+                                alt="Movie Scene"
+                                className="max-w-full max-h-full object-contain md:object-cover md:w-full md:h-full transition-[filter] duration-300"
+                                style={{
+                                    filter: `blur(${currentBlur}px)`,
+                                    transform: "scale(1.05)",
+                                }}
+                                onLoad={handleImageLoad}
+                            />
+                        </div>
                     ) : (
                         <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                             <p className="text-white/40 text-xl">Loading scene...</p>
@@ -122,26 +125,9 @@ export default function RapidFireScene({
                 )}
             </AnimatePresence>
 
-            {/* Speed Bonus Indicator */}
-            <AnimatePresence>
-                {timeLeft >= maxTime - 3 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                        className="absolute top-32 left-0 right-0 mx-auto w-fit z-30"
-                    >
-                        <div className="flex items-center justify-center px-6 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-emerald-500/50 shadow-[0_0_25px_-5px_rgba(16,185,129,0.4)]">
-                            <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 drop-shadow-md">
-                                <span className="text-lg animate-pulse">⚡</span>
-                                <span>Speed Bonus: +50 Pts</span>
-                            </span>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
 
-        </div>
+
+        </div >
     );
 }

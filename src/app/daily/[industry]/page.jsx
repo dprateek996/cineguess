@@ -509,6 +509,13 @@ export default function DailyGamePage({ params }) {
                                 >
                                     <Icons.Play className="w-3 h-3 fill-current" /> Back to Daily
                                 </Link>
+
+                                <Link
+                                    href="/"
+                                    className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 mt-3"
+                                >
+                                    <span className="uppercase tracking-[0.2em] text-[10px] font-bold">Return to Menu</span>
+                                </Link>
                             </motion.div>
                         </div>
                     </div>

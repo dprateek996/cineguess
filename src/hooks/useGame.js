@@ -89,6 +89,12 @@ export function useGame() {
                     streak: guessResult.streak,
                     correctAnswer: guessResult.correctAnswer,
                 }));
+            } else if (guessResult.status === 'WRONG' && guessResult.nextStage) {
+                // Wrong guess but not game over - advance stage (Classic Mode)
+                setSession(prev => ({
+                    ...prev,
+                    currentStage: guessResult.nextStage
+                }));
             }
 
             return guessResult;

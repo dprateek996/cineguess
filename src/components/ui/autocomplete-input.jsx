@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useSound } from "@/hooks/useSound";
+
 /**
  * AutocompleteInput - "Tactile Console" Input
  * 
@@ -10,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
  * - Radial Flare on Focus
  * - Debounced API search
  * - Keyboard navigation
+ * - Haptic Sound Feedback
  */
 export default function AutocompleteInput({
     value,
@@ -29,12 +32,20 @@ export default function AutocompleteInput({
     const debounceRef = useRef(null);
     const containerRef = useRef(null);
 
+    // Sound FX
+    const { playTypewriter } = useSound();
+
     // Fetch suggestions from API - DISABLED (user requested no suggestions)
     const fetchSuggestions = useCallback(async (query) => {
         // Suggestions disabled - always clear
         setSuggestions([]);
         return;
     }, [industry]);
+
+    const handleChange = (e) => {
+        playTypewriter();
+        onChange(e);
+    };
 
     // Debounced search
     useEffect(() => {
@@ -151,7 +162,7 @@ export default function AutocompleteInput({
                         ref={inputRef}
                         type="text"
                         value={value}
-                        onChange={(e) => onChange(e)}
+                        onChange={handleChange}
                         onKeyDown={handleKeyDown}
                         onFocus={() => suggestions.length > 0 && setIsOpen(true)}
                         placeholder={placeholder}

@@ -168,10 +168,11 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
 
         if (count > 0) {
             // DIFFICULTY LOGIC
-            let takePool = 0;
-            if (round <= 2) takePool = 15;
-            else if (round <= 6) takePool = 40;
-            else if (round <= 15) takePool = 100;
+            let takePool;
+            if (round <= 3) takePool = 20;       // Super Famous
+            else if (round <= 8) takePool = 50;  // Famous
+            else if (round <= 15) takePool = 150; // Moderate
+            else takePool = 500;                 // Hard / Obscure
 
             if (takePool > 0) {
                 // Fetch candidates sorted by popularity
@@ -245,8 +246,20 @@ async function getNextMovie(industry, playedMovieIds = [], retryCount = 0, round
 // Initialize a new game session
 export async function initializeGameSession(industry, userId, mode = 'classic') {
     try {
+        // No Repeats: Fetch user's entire history if logged in
+        let excludeIds = [];
+        if (userId) {
+            const history = await prisma.gameSession.findMany({
+                where: { userId },
+                select: { guesses: true }
+            });
+            // Flatten all guesses from all sessions
+            excludeIds = history.flatMap(s => s.guesses);
+        }
+
         // Start at Round 1 (Easy Difficulty)
-        const movie = await getNextMovie(industry, [], 0, 1)
+        // Pass excludeIds to ensure we don't pick a movie they've ever seen
+        const movie = await getNextMovie(industry, excludeIds, 0, 1)
 
         if (!movie) {
             throw new Error(`No movies available for ${industry}`)
@@ -258,6 +271,11 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
 
         let session;
         try {
+            // If it's a fallback movie (not in DB), don't try to create a relational session
+            if (movie.id.toString().startsWith('fallback-')) {
+                throw new Error("Fallback movie selected - skipping DB creation");
+            }
+
             session = await prisma.gameSession.create({
                 data: {
                     movieId: movie.id,
@@ -272,8 +290,10 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
         } catch (dbErr) {
             console.error("[GameService] Session Creation Failed (Offline Mode):", dbErr);
             // Critical Fallback: Application-level mock session if DB is dead
+            // We encode the movie ID in the session ID to verify guesses statelessly
+            const offlineId = `offline-${Date.now()}-${movie.tmdbId}`;
             session = {
-                id: `offline-${Date.now()}`,
+                id: offlineId,
                 attempts: 0,
                 currentLevel: 1,
                 streak: 0,
@@ -651,34 +671,78 @@ export async function getGameSession(sessionId) {
 
 
 // Helper for stateless offline guessing
+// Helper for stateless offline guessing
 async function processOfflineGuess(sessionId, guess, currentStage, timeRemaining) {
     console.log(`[GameService] Processing Offline Guess for session: ${sessionId}`);
 
-    // Attempt to match guess against ANY fallback movie since we are stateless
+    // Extract encdoed TMDB ID from session string: "offline-TIMESTAMP-TMDBID"
+    const parts = sessionId.split('-');
+    const tmdbId = parts.length >= 3 ? parseInt(parts[2]) : null;
+
     const { FALLBACK_MOVIES } = await import('../data/fallback-movies');
     const allFallbacks = Object.values(FALLBACK_MOVIES).flat();
-    const matchedMovie = allFallbacks.find(m => validateGuess(guess, m.title) === 'CORRECT');
 
-    if (matchedMovie) {
-        return {
-            result: 'CORRECT',
-            points: 1000,
-            message: "Correct! (Offline Mode)",
-            nextRound: {
-                round: 2,
-                stage: 1,
-                // Pick another random fallback
-                ...getStageData(allFallbacks[Math.floor(Math.random() * allFallbacks.length)], 1)
-            },
-            stats: { streak: 1, totalScore: 1000 }
+    // Find the SPECIFIC movie the user is guessing for
+    let targetMovie = null;
+    if (tmdbId) {
+        targetMovie = allFallbacks.find(m => m.tmdbId === tmdbId);
+    }
+
+    // fallback if parsing fails (shouldn't happen with new logic)
+    if (!targetMovie) {
+        // Fallback to "any match" logic if ID missing
+        targetMovie = allFallbacks.find(m => validateGuess(guess, m.title) === 'CORRECT');
+    }
+
+    if (targetMovie) {
+        const validation = validateGuess(guess, targetMovie.title);
+
+        if (validation === 'CORRECT') {
+            return {
+                isCorrect: true,
+                status: 'CORRECT',
+                message: "🎉 Correct! (Offline Mode)",
+                roundScore: 100,
+                totalScore: 100,
+                currentRound: 2,
+                guessedAtStage: currentStage,
+                streak: 1,
+                gotSpeedBonus: false,
+                gameOver: false,
+                nextMovie: {
+                    // Pick another random fallback for "Round 2"
+                    ...getStageData(allFallbacks[Math.floor(Math.random() * allFallbacks.length)], 1),
+                    hints: [], // Simplified for offline
+                    blurAmount: 20,
+                    timeLimit: null,
+                    allStages: {
+                        1: { type: 'poster', label: 'Poster' },
+                        2: { type: 'dialogue', label: 'Dialogue' },
+                        3: { type: 'scene', label: 'Scene' }
+                    }
+                }
+            }
+        } else if (validation === 'NEAR_MISS') {
+            return {
+                isCorrect: false,
+                status: 'NEAR_MISS',
+                message: "🤏 So close! Check spelling.",
+                currentRound: 1,
+                lives: 3
+            }
         }
     }
 
     return {
-        result: 'WRONG',
-        message: "Wrong guess (or Offline Mode limitation)",
+        isCorrect: false,
+        status: 'WRONG',
+        message: "Wrong guess (Offline Mode)",
         lives: 3,
-        correctAnswer: "Unknown (Offline)"
+        // CRITICAL: Ensure we pass nextStage for Classic Mode progression
+        nextStage: currentStage < 3 ? currentStage + 1 : undefined,
+        currentStage: currentStage,
+        currentRound: 1,
+        gameOver: currentStage >= 3
     }
 }
 

@@ -80,13 +80,7 @@ export default function LeaderboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-8"
                 >
-                    <Link
-                        href="/"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 mb-6 group"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span className="uppercase tracking-widest text-[10px] font-bold">Back to Menu</span>
-                    </Link>
+
 
                     <div className="flex items-center justify-center gap-3 mb-3">
                         <Trophy className="w-8 h-8 text-primary" />
@@ -286,7 +280,7 @@ export default function LeaderboardPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mt-8 text-center"
+                    className="mt-8 flex flex-col items-center gap-2"
                 >
                     <Link
                         href="/"
@@ -294,6 +288,13 @@ export default function LeaderboardPage() {
                     >
                         <Icons.Play className="w-3 h-3 fill-current" />
                         Play Now
+                    </Link>
+
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 group w-full justify-center"
+                    >
+                        <span className="uppercase tracking-[0.2em] text-[10px] font-bold">Return to Menu</span>
                     </Link>
                 </motion.div>
             </div>
