@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { processGuess, endGame } from '@/services/gameService'
+import { processGuess, endGame, skipMovie } from '@/services/gameService'
 
 const guessSchema = z.object({
     sessionId: z.string().min(1, 'Session ID is required'),
@@ -14,8 +14,26 @@ const endGameSchema = z.object({
     reason: z.enum(['lives', 'timeout']).optional().default('lives'),
 })
 
+const skipSchema = z.object({
+    sessionId: z.string().min(1),
+    lives: z.number().min(0).max(3).optional().default(3),
+})
+
+import { checkRateLimit } from '@/lib/ratelimit'
+
 export async function POST(request) {
     try {
+        // Rate limit check
+        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1'
+        const { success } = await checkRateLimit(ip)
+
+        if (!success) {
+            return NextResponse.json(
+                { success: false, error: 'Too many requests. Please slow down.' },
+                { status: 429 }
+            )
+        }
+
         const body = await request.json()
 
         // Handle end game request (for rapid fire)
@@ -24,6 +42,14 @@ export async function POST(request) {
             const result = await endGame(sessionId, reason)
             return NextResponse.json({ success: true, data: result })
         }
+
+        // Handle skip request (for rapid fire timeout/wrong)
+        if (body.action === 'skip') {
+            const { sessionId, lives } = skipSchema.parse(body)
+            const result = await skipMovie(sessionId, lives)
+            return NextResponse.json({ success: true, data: result })
+        }
+
 
         // Handle guess submission
         const { sessionId, guess, currentStage, timeRemaining } = guessSchema.parse(body)

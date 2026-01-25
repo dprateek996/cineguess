@@ -14,10 +14,8 @@ import { FALLBACK_MOVIES } from '../data/fallback-movies'
 // Difficulty configuration based on round
 function getDifficultyConfig(round, mode = 'classic') {
     if (mode === 'rapidfire') {
-        // Rapid Fire: Focus on speed, less blur progression
-        if (round <= 5) return { blur: 15, maxHints: 3, timeLimit: 30 }
-        if (round <= 10) return { blur: 25, maxHints: 2, timeLimit: 20 }
-        return { blur: 35, maxHints: 1, timeLimit: 15 }
+        // Rapid Fire: 15 second timer, scene-only mode
+        return { blur: 4, maxHints: 1, timeLimit: 15, speedBonusWindow: 3 }
     }
 
     // Classic Endless: Progressive blur and hint reduction
@@ -101,7 +99,7 @@ function getHintsForRound(movie, maxHints) {
 }
 
 // Calculate score based on performance with stage-based multipliers
-function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic') {
+function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic', maxTime = 15) {
     const baseScore = 100 * round
 
     // Stage-based multiplier (earlier stage = more points)
@@ -114,10 +112,19 @@ function calculateScore(round, stage = 1, timeRemaining = null, mode = 'classic'
     if (round >= 5) streakMultiplier = 1.5
     if (round >= 10) streakMultiplier = 2
 
-    // Time bonus for rapid fire
-    const timeBonus = mode === 'rapidfire' && timeRemaining ? timeRemaining * 3 : 0
+    // Rapid Fire specific bonuses
+    if (mode === 'rapidfire' && timeRemaining !== null) {
+        // Speed Bonus: 3x if guessed within first 3 seconds
+        const timeUsed = maxTime - timeRemaining
+        const speedMultiplier = timeUsed <= 3 ? 3 : 1
 
-    return Math.floor((baseScore * stageMultiplier + timeBonus) * streakMultiplier)
+        // Time bonus increases with remaining time
+        const timeBonus = timeRemaining * 5
+
+        return Math.floor((baseScore + timeBonus) * speedMultiplier * streakMultiplier)
+    }
+
+    return Math.floor(baseScore * stageMultiplier * streakMultiplier)
 }
 
 // Get a random movie, avoiding already played ones
@@ -267,13 +274,39 @@ export async function initializeGameSession(industry, userId, mode = 'classic') 
             };
         }
 
+        // Rapid Fire: Scene-only mode, no multi-stage hints
+        if (mode === 'rapidfire') {
+            const sceneStage = getStageData(movie, 3) // Scene is stage 3
+            return {
+                sessionId: session.id,
+                currentRound: 1,
+                currentStage: 1, // Always stage 1 in rapid fire (only one stage)
+                streak: 0,
+                totalScore: 0,
+                lives: 3,
+                stageData: sceneStage,
+                allStages: {
+                    1: sceneStage, // Only scene stage in rapid fire
+                },
+                hints: [],
+                blurAmount: difficultyConfig.blur,
+                timeLimit: difficultyConfig.timeLimit,
+                speedBonusWindow: difficultyConfig.speedBonusWindow || 3,
+                posterPath: movie.posterPath,
+                backdropPath: movie.backdropPath,
+                industry,
+                mode,
+                isGameOver: false,
+            }
+        }
+
         return {
             sessionId: session.id,
             currentRound: 1,
             currentStage: 1,
             streak: 0,
             totalScore: 0,
-            lives: mode === 'rapidfire' ? 3 : null,
+            lives: null,
             // Stage-based clue system
             stageData,
             // All stage data for this movie (frontend can cache)
@@ -325,12 +358,18 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
         // CORRECT GUESS - Move to next round with new movie
         if (validationResult === 'CORRECT') {
             // Calculate score based on stage (earlier stage = more points)
+            const maxTime = difficultyConfig.timeLimit || 15
             const roundScore = calculateScore(
                 currentRound,
                 currentStage,
                 timeRemaining,
-                mode
+                mode,
+                maxTime
             )
+
+            // Check if speed bonus was achieved (rapid fire only)
+            const timeUsed = timeRemaining !== null ? maxTime - timeRemaining : null
+            const gotSpeedBonus = mode === 'rapidfire' && timeUsed !== null && timeUsed <= 3
 
             const newRound = currentRound + 1
             const playedMovieIds = session.guesses
@@ -352,29 +391,44 @@ export async function processGuess(sessionId, guess, currentStage = 1, timeRemai
                 },
             })
 
+            // Prepare next movie data based on mode
+            const sceneStage = getStageData(nextMovie, 3)
+            const nextMovieData = mode === 'rapidfire' ? {
+                hints: [],
+                stageData: sceneStage,
+                allStages: { 1: sceneStage },
+                blurAmount: nextDifficulty.blur,
+                timeLimit: nextDifficulty.timeLimit,
+                speedBonusWindow: nextDifficulty.speedBonusWindow || 3,
+                posterPath: nextMovie.posterPath,
+                backdropPath: nextMovie.backdropPath,
+            } : {
+                hints: nextHints,
+                stageData: getStageData(nextMovie, 1),
+                allStages: {
+                    1: getStageData(nextMovie, 1),
+                    2: getStageData(nextMovie, 2),
+                    3: getStageData(nextMovie, 3),
+                },
+                blurAmount: nextDifficulty.blur,
+                timeLimit: nextDifficulty.timeLimit,
+                posterPath: nextMovie.posterPath,
+                backdropPath: nextMovie.backdropPath,
+            }
+
             return {
                 isCorrect: true,
                 status: 'CORRECT',
-                message: `🎉 Correct! It was "${session.movie.title}"`,
+                message: gotSpeedBonus
+                    ? `⚡ SPEED BONUS! +3x! "${session.movie.title}"`
+                    : `🎉 Correct! It was "${session.movie.title}"`,
                 roundScore,
                 totalScore: (session.score || 0) + roundScore,
                 currentRound: newRound,
-                guessedAtStage: currentStage,  // Track which stage they guessed at
-                streak: currentRound, // Streak = rounds completed
-                // Next movie data with stage info
-                nextMovie: {
-                    hints: nextHints,
-                    stageData: getStageData(nextMovie, 1),  // Reset to Stage 1
-                    allStages: {
-                        1: getStageData(nextMovie, 1),
-                        2: getStageData(nextMovie, 2),
-                        3: getStageData(nextMovie, 3),
-                    },
-                    blurAmount: nextDifficulty.blur,
-                    timeLimit: nextDifficulty.timeLimit,
-                    posterPath: nextMovie.posterPath,
-                    backdropPath: nextMovie.backdropPath,
-                },
+                guessedAtStage: currentStage,
+                streak: currentRound,
+                gotSpeedBonus,
+                nextMovie: nextMovieData,
                 gameOver: false,
             }
         }
@@ -491,10 +545,70 @@ export async function endGame(sessionId, reason = 'lives') {
         reason,
         correctAnswer: session.movie.title,
         posterPath: session.movie.posterPath,
+        backdropPath: session.movie.backdropPath,
         finalScore,
         streak,
     }
 }
+
+// Skip movie in rapid fire (lose a life, get next movie or game over)
+export async function skipMovie(sessionId, currentLives = 3) {
+    const session = await prisma.gameSession.findUnique({
+        where: { id: sessionId },
+        include: { movie: true },
+    })
+
+    if (!session) throw new Error('Session not found')
+    if (session.gameMode !== 'rapidfire') throw new Error('Skip only available in rapid fire mode')
+
+    const newLives = currentLives - 1
+
+    // Game over if no lives left
+    if (newLives <= 0) {
+        return endGame(sessionId, 'lives')
+    }
+
+    // Get next movie
+    const currentRound = session.currentLevel
+    const playedMovieIds = session.guesses || []
+    const nextMovie = await getNextMovie(session.movie.industry, playedMovieIds, 0, currentRound)
+
+    if (!nextMovie) {
+        return endGame(sessionId, 'no_movies')
+    }
+
+    const difficultyConfig = getDifficultyConfig(currentRound, 'rapidfire')
+    const sceneStage = getStageData(nextMovie, 3)
+
+    // Update session with new movie
+    await prisma.gameSession.update({
+        where: { id: sessionId },
+        data: {
+            movieId: nextMovie.id,
+            guesses: [...playedMovieIds, nextMovie.id],
+        },
+    })
+
+    return {
+        gameOver: false,
+        lives: newLives,
+        currentRound,
+        streak: currentRound - 1,
+        totalScore: session.score || 0,
+        skippedMovie: session.movie.title,
+        nextMovie: {
+            hints: [],
+            stageData: sceneStage,
+            allStages: { 1: sceneStage },
+            blurAmount: difficultyConfig.blur,
+            timeLimit: difficultyConfig.timeLimit,
+            speedBonusWindow: difficultyConfig.speedBonusWindow || 3,
+            posterPath: nextMovie.posterPath,
+            backdropPath: nextMovie.backdropPath,
+        },
+    }
+}
+
 
 // Get session status
 export async function getGameSession(sessionId) {
@@ -564,5 +678,6 @@ export default {
     initializeGameSession,
     processGuess,
     endGame,
+    skipMovie,
     getGameSession,
 }

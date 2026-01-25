@@ -12,6 +12,7 @@ import VerticalFilmStrip from "@/components/ui/vertical-film-strip";
 import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
 import { FilmGrain } from "@/components/ui/film-grain";
+import { BorderBeam } from "@/components/ui/border-beam";
 import Link from "next/link";
 import { Icons } from "@/components/Icons";
 import { ImageIcon, Zap, XCircle } from "lucide-react";
@@ -58,6 +59,7 @@ export default function DailyGamePage({ params }) {
     const [alreadyPlayed, setAlreadyPlayed] = useState(false);
     const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [currentStreak, setCurrentStreak] = useState(0);
 
     const config = industryConfig[industry] || industryConfig.HOLLYWOOD;
 
@@ -104,6 +106,8 @@ export default function DailyGamePage({ params }) {
             stats.streak = 0;
         }
         localStorage.setItem(statsKey, JSON.stringify(stats));
+        localStorage.setItem(statsKey, JSON.stringify(stats));
+        setCurrentStreak(stats.streak);
     }, [industry]);
 
     const handleSubmit = async (e) => {
@@ -258,11 +262,13 @@ export default function DailyGamePage({ params }) {
         );
     }
 
-    const getCinephileRating = (score) => {
-        if (score >= 300) return "Cinematic Legend";
-        if (score >= 200) return "Visionary Director";
-        if (score >= 100) return "Lead Actor";
-        return "Background Extra"; // 0 pts
+    // New tier system based on daily streak
+    const getCinephileRating = (streak) => {
+        if (streak >= 15) return { title: "THE AUTEUR", emoji: "👑", isPrestige: true };
+        if (streak >= 10) return { title: "CINEMA LEGEND", emoji: "🏆", isPrestige: false };
+        if (streak >= 5) return { title: "MOVIE BUFF", emoji: "🎥", isPrestige: false };
+        if (streak >= 2) return { title: "CASUAL VIEWER", emoji: "🎟️", isPrestige: false };
+        return { title: "DELETED SCENE", emoji: "💀", isPrestige: false };
     };
 
     const getGuessTimeline = () => {
@@ -312,7 +318,7 @@ export default function DailyGamePage({ params }) {
 
     if (gameOver && dailyData) {
         const score = won ? (4 - currentStage) * 100 : 0;
-        const rating = getCinephileRating(score);
+        const rating = getCinephileRating(currentStreak);
         const movieTitle = dailyData.movie?.title || "Unknown Movie";
 
         const handleDownloadCard = async () => {
@@ -338,11 +344,11 @@ export default function DailyGamePage({ params }) {
             setIsDownloading(false);
         };
 
-        const shareText = `I just solved the Daily ${config.name} Challenge! 🎞️✨\n\nMovie: ${movieTitle}\nScore: ${score} pts\nRank: ${rating} 👑\n\n#CineQuestDaily`;
+        const shareText = `I just solved the Daily ${config.name} Challenge! 🎞️✨\n\nMovie: ${movieTitle}\nScore: ${score} pts\nRank: ${rating.title} ${rating.emoji}\n\n#CineQuestDaily`;
 
         // Construct the viral share URL
         const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cinequest.com';
-        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(dailyData.movie?.posterPath || '')}&mode=Daily`;
+        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating.title)}&poster=${encodeURIComponent(dailyData.movie?.posterPath || '')}&mode=Daily`;
         const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
 
         const containerVariants = {
@@ -394,7 +400,16 @@ export default function DailyGamePage({ params }) {
                     className="w-full max-w-md relative z-10 perspective-1000"
                 >
                     {/* The Viral Stat Card */}
-                    <div id="daily-stat-card" className="bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
+                    <div id="daily-stat-card" className={`bg-zinc-900/60 backdrop-blur-2xl border ${rating.isPrestige ? 'border-amber-300/40' : 'border-white/10'} rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ${rating.isPrestige ? 'ring-amber-300/50' : 'ring-white/5'}`}>
+                        {rating.isPrestige && (
+                            <BorderBeam
+                                size={300}
+                                duration={8}
+                                colorFrom="#ffd700"
+                                colorTo="#fff8dc"
+                                borderWidth={2}
+                            />
+                        )}
                         {/* Card Header: Rating */}
                         <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent p-8 pb-6 text-center border-b border-white/5 relative overflow-hidden">
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -403,10 +418,11 @@ export default function DailyGamePage({ params }) {
 
                             {/* Text Masking & Glow */}
                             <div className="relative inline-block">
-                                <h2 className="text-3xl sm:text-4xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                                    {rating}
+                                <h2 className={`text-3xl sm:text-4xl font-black italic tracking-tight text-transparent bg-clip-text ${rating.isPrestige ? 'bg-gradient-to-r from-amber-100 via-white to-amber-100' : 'bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200'} drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]`}>
+                                    {rating.title}
                                 </h2>
-                                <div className="absolute -inset-4 bg-amber-400/20 blur-3xl opacity-20 rounded-full" />
+                                <p className="text-4xl mt-3">{rating.emoji}</p>
+                                <div className={`absolute -inset-4 ${rating.isPrestige ? 'bg-amber-100/30' : 'bg-amber-400/20'} blur-3xl opacity-20 rounded-full`} />
                             </div>
                         </motion.div>
 

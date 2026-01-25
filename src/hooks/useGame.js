@@ -136,14 +136,68 @@ export function useGame() {
         setError(null);
     }, []);
 
-    // Helper to lose a life in rapid fire mode
-    const loseLife = useCallback(() => {
-        setSession(prev => {
-            if (!prev || prev.mode !== 'rapidfire') return prev;
-            const newLives = (prev.lives || 3) - 1;
-            return { ...prev, lives: newLives };
-        });
-    }, []);
+    // Helper to lose a life in rapid fire mode - calls API to skip to next movie
+    const loseLife = useCallback(async (currentLives = 3) => {
+        if (!session?.sessionId || session.mode !== 'rapidfire') return null;
+
+        try {
+            const res = await fetch("/api/game/guess", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    sessionId: session.sessionId,
+                    action: 'skip',
+                    lives: currentLives,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                const skipResult = data.data;
+
+                if (skipResult.gameOver) {
+                    // Game over - out of lives
+                    setSession(prev => ({
+                        ...prev,
+                        isGameOver: true,
+                        lives: 0,
+                        finalScore: skipResult.finalScore,
+                        streak: skipResult.streak,
+                        correctAnswer: skipResult.correctAnswer,
+                        posterPath: skipResult.posterPath,
+                        backdropPath: skipResult.backdropPath,
+                    }));
+                    return { gameOver: true };
+                } else if (skipResult.nextMovie) {
+                    // Got next movie - use movieChangeId to trigger timer reset
+                    setSession(prev => ({
+                        ...prev,
+                        currentRound: skipResult.currentRound,
+                        currentStage: 1,
+                        lives: skipResult.lives,
+                        streak: skipResult.streak,
+                        totalScore: skipResult.totalScore,
+                        hints: skipResult.nextMovie.hints,
+                        stageData: skipResult.nextMovie.stageData,
+                        allStages: skipResult.nextMovie.allStages,
+                        blurAmount: skipResult.nextMovie.blurAmount,
+                        timeLimit: skipResult.nextMovie.timeLimit,
+                        posterPath: skipResult.nextMovie.posterPath,
+                        backdropPath: skipResult.nextMovie.backdropPath,
+                        // Add a unique ID to trigger timer restart since currentRound doesn't change on skip
+                        movieChangeId: Date.now(),
+                    }));
+                    return { lives: skipResult.lives };
+                }
+            }
+            return null;
+        } catch (err) {
+            console.error('loseLife error:', err);
+            return null;
+        }
+    }, [session]);
+
 
     return {
         session,

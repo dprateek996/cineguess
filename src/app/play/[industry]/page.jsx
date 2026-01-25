@@ -7,13 +7,16 @@ import { useSound } from "@/hooks/useSound";
 import GameIntro from "@/components/ui/game-intro";
 import HandleModal from "@/components/ui/handle-modal";
 import SceneImage from "@/components/ui/scene-image";
+import RapidFireScene from "@/components/ui/rapid-fire-scene";
 import TypewriterDialogue from "@/components/ui/typewriter-dialogue";
 import TriviaCard from "@/components/ui/trivia-card";
 import MinimalHUD from "@/components/ui/minimal-hud";
 import VerticalFilmStrip from "@/components/ui/vertical-film-strip";
 import AutocompleteInput from "@/components/ui/autocomplete-input";
 import ShareCard from "@/components/ui/share-card";
+import RapidFireGameOver from "@/components/ui/rapidfire-game-over";
 import { FilmGrain } from "@/components/ui/film-grain";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { Icons } from "@/components/Icons";
 import {
@@ -143,34 +146,27 @@ export default function PlayPage({ params }) {
                 timerRef.current = null;
             }
         };
-    }, [session?.sessionId, session?.currentRound, session?.mode, session?.isGameOver]);
+        // movieChangeId triggers timer restart when life is lost and next movie loads
+    }, [session?.sessionId, session?.currentRound, session?.mode, session?.isGameOver, session?.movieChangeId]);
 
     const handleTimeUp = async () => {
-        if (session?.mode === 'rapidfire') {
-            setLives(prevLives => {
-                const newLives = prevLives - 1;
-                if (newLives <= 0) {
-                    endGame('timeout');
-                }
-                return newLives;
-            });
-            loseLife();
+        if (processingRef.current) return; // Prevent collision
 
-            if (lives > 1 && currentStage < 3) {
-                setCurrentStage(prev => prev + 1);
-                setTimeLeft(session?.timeLimit || 30);
-                if (timerRef.current) clearInterval(timerRef.current);
-                timerRef.current = setInterval(() => {
-                    setTimeLeft(prev => {
-                        if (prev <= 1) {
-                            clearInterval(timerRef.current);
-                            timerRef.current = null;
-                            setTimeout(() => handleTimeUp(), 0);
-                            return 0;
-                        }
-                        return prev - 1;
-                    });
-                }, 1000);
+        if (session?.mode === 'rapidfire' && lives > 0) {
+            processingRef.current = true;
+            try {
+                const res = await loseLife(lives);
+
+                if (res?.gameOver) {
+                    setLives(0);
+                    playGameOver();
+                } else if (res?.lives !== undefined) {
+                    setLives(res.lives);
+                    playWrong();
+                    // Timer will restart via useEffect when session.currentRound changes
+                }
+            } finally {
+                processingRef.current = false;
             }
         }
     };
@@ -179,6 +175,49 @@ export default function PlayPage({ params }) {
         const savedHandle = localStorage.getItem("cinequest_handle");
         if (savedHandle) setUserHandle(savedHandle);
     }, []);
+
+    // Submit score to leaderboard when game ends
+    const submittedRef = useRef(false);
+    const processingRef = useRef(false); // Lock for critical game state updates (timer vs submit)
+
+    // Submit score to leaderboard when game ends
+    useEffect(() => {
+        if (!session?.isGameOver) return;
+        if (submittedRef.current) return;
+
+        const submitScore = async () => {
+            submittedRef.current = true;
+            const savedHandle = localStorage.getItem("cinequest_handle");
+            const score = session?.totalScore || 0;
+            const streak = session?.streak || 0;
+
+            if (!savedHandle || score <= 0) return;
+
+            // Determine category based on industry and mode
+            let category;
+            if (session?.mode === 'rapidfire') {
+                category = industry === 'BOLLYWOOD' ? 'RAPIDFIRE_BOLLYWOOD' : 'RAPIDFIRE_HOLLYWOOD';
+            } else {
+                category = industry;
+            }
+
+            try {
+                await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: savedHandle,
+                        score,
+                        category,
+                        moviesGuessed: streak,
+                    }),
+                });
+            } catch (err) {
+                console.error('Failed to submit score:', err);
+            }
+        };
+        submitScore();
+    }, [session?.isGameOver, session?.totalScore, session?.streak, session?.mode, industry]);
 
     const startGame = useCallback((mode) => {
         setGameMode(mode);
@@ -190,6 +229,8 @@ export default function PlayPage({ params }) {
             setUserHandle(savedHandle);
             initGame(industry, mode);
             setCurrentStage(1);
+            setLives(3); // Reset lives
+            submittedRef.current = false; // Reset submission flag
         }
     }, [industry, initGame]);
 
@@ -205,11 +246,20 @@ export default function PlayPage({ params }) {
         setShowHandleModal(false);
         initGame(industry, gameMode);
         setCurrentStage(1);
+        setLives(3);
+        submittedRef.current = false;
     }, [industry, gameMode, initGame]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!guess.trim() || loading) return;
+        if (!guess.trim() || loading || processingRef.current) return;
+
+        processingRef.current = true;
+        // Stop timer immediately to prevent race condition
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
 
         try {
             const res = await submitGuess(guess.trim(), currentStage, timeLeft);
@@ -221,19 +271,25 @@ export default function PlayPage({ params }) {
                 setTimeout(() => setShakeInput(false), 500);
 
                 if (session?.mode === 'rapidfire') {
-                    setLives(prev => {
-                        const newLives = prev - 1;
-                        if (newLives <= 0) {
-                            playGameOver();
-                            endGame('lives');
-                        }
-                        return newLives;
-                    });
-                    loseLife();
+                    // Update local state for immediate feedback
+                    setLives(prev => Math.max(0, prev - 1));
 
-                    if (lives > 1 && currentStage < 3) {
-                        playTransition();
-                        setCurrentStage(prev => prev + 1);
+                    // Call API to handle life loss/game over logic
+                    // We pass the CURRENT lives (before decrement) as API expects
+                    const res = await loseLife(lives);
+
+                    // If API says game over, lives will be 0
+                    if (res?.gameOver) {
+                        setLives(0);
+                        playGameOver();
+                        // session is updated by loseLife hook
+                    } else if (res?.lives !== undefined) {
+                        // Sync with server source of truth
+                        setLives(res.lives);
+                        if (currentStage < 3) {
+                            playTransition();
+                            setCurrentStage(prev => prev + 1);
+                        }
                     }
                 } else {
                     if (currentStage < 3) {
@@ -270,6 +326,11 @@ export default function PlayPage({ params }) {
             }
         } catch (err) {
             console.error(err);
+        } finally {
+            // Only release lock if NOT game over (if game over, we want to block further input)
+            if (!session?.isGameOver) {
+                processingRef.current = false;
+            }
         }
     };
 
@@ -473,12 +534,13 @@ export default function PlayPage({ params }) {
         );
     }
 
-    const getCinephileRating = (score) => {
-        if (score >= 10000) return "Cinematic Legend";
-        if (score >= 5000) return "Visionary Director";
-        if (score >= 2000) return "Lead Actor";
-        if (score >= 500) return "Supporting Role";
-        return "Background Extra";
+    // New tier system based on movies guessed (streak) instead of score
+    const getCinephileRating = (streak) => {
+        if (streak >= 15) return { title: "THE AUTEUR", emoji: "👑", isPrestige: true };
+        if (streak >= 10) return { title: "CINEMA LEGEND", emoji: "🏆", isPrestige: false };
+        if (streak >= 5) return { title: "MOVIE BUFF", emoji: "🎥", isPrestige: false };
+        if (streak >= 2) return { title: "CASUAL VIEWER", emoji: "🎟️", isPrestige: false };
+        return { title: "DELETED SCENE", emoji: "💀", isPrestige: false };
     };
 
     const getGuessTimeline = () => {
@@ -528,10 +590,32 @@ export default function PlayPage({ params }) {
     };
 
     if (session?.isGameOver) {
-        const rating = getCinephileRating(session?.totalScore || 0);
+        // Rapid Fire mode has its own dedicated game over screen
+        if (session?.mode === 'rapidfire') {
+            return (
+                <RapidFireGameOver
+                    moviesCorrect={session?.streak || 0}
+                    totalScore={session?.totalScore || 0}
+                    posterPath={session?.posterPath}
+                    backdropPath={session?.backdropPath}
+                    lastMovie={session?.correctAnswer}
+                    industry={config.name}
+                    onPlayAgain={() => {
+                        resetGame();
+                        setShowModeSelect(true);
+                        setCurrentStage(1);
+                        setLives(3);
+                    }}
+                    onReturnToMenu={() => window.location.href = '/'}
+                />
+            );
+        }
+
+        // Classic mode game over screen
+        const streak = session?.streak || 0;
+        const rating = getCinephileRating(streak);
         const movieTitle = session?.correctAnswer || "Unknown Movie";
         const score = session?.totalScore || 0;
-        const streak = session?.streak || 0;
 
         const handleDownloadCard = async () => {
             setIsDownloading(true);
@@ -549,18 +633,18 @@ export default function PlayPage({ params }) {
                     link.href = image;
                     link.download = `cinequest-stats-${Date.now()}.png`;
                     link.click();
-                } catch (error) {
-                    console.error('Failed to capture card:', error);
+                } catch (err) {
+                    console.error('Failed to capture card:', err);
                 }
             }
             setIsDownloading(false);
         };
 
-        const shareText = `I just identified "${movieTitle}"! 🎞️✨\n\nScore: ${score} pts\nRank: ${rating} 👑\n\nCan you beat my streak? #CineQuest`;
+        const shareText = `I just identified "${movieTitle}"! 🎞️✨\n\nScore: ${score} pts\nRank: ${rating.title} ${rating.emoji}\n\nCan you beat my streak? #CineQuest`;
 
         // Construct the viral share URL
         const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cinequest.com';
-        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating)}&poster=${encodeURIComponent(session?.posterPath || '')}&mode=Standard`;
+        const sharePageUrl = `${origin}/share?title=${encodeURIComponent(movieTitle)}&score=${score}&rank=${encodeURIComponent(rating.title)}&poster=${encodeURIComponent(session?.posterPath || '')}&mode=${session?.mode === 'rapidfire' ? 'RapidFire' : 'Classic'}`;
         const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(sharePageUrl)}`;
 
         const containerVariants = {
@@ -612,7 +696,16 @@ export default function PlayPage({ params }) {
                     className="w-full max-w-md relative z-10 perspective-1000"
                 >
                     {/* The Viral Stat Card */}
-                    <div id="stat-card-container" className="bg-zinc-900/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
+                    <div id="stat-card-container" className={`bg-zinc-900/60 backdrop-blur-2xl border ${rating.isPrestige ? 'border-amber-300/40' : 'border-white/10'} rounded-[2rem] overflow-hidden shadow-2xl relative ring-1 ${rating.isPrestige ? 'ring-amber-300/50' : 'ring-white/5'}`}>
+                        {rating.isPrestige && (
+                            <BorderBeam
+                                size={300}
+                                duration={8}
+                                colorFrom="#ffd700"
+                                colorTo="#fff8dc"
+                                borderWidth={2}
+                            />
+                        )}
                         {/* Card Header: Rating */}
                         <motion.div variants={itemVariants} className="bg-gradient-to-b from-white/5 to-transparent px-5 py-4 text-center border-b border-white/5 relative overflow-hidden">
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -621,10 +714,11 @@ export default function PlayPage({ params }) {
 
                             {/* Text Masking & Glow */}
                             <div className="relative inline-block">
-                                <h2 className="text-2xl sm:text-3xl font-black italic tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                                    {rating}
+                                <h2 className={`text-2xl sm:text-3xl font-black italic tracking-tight text-transparent bg-clip-text ${rating.isPrestige ? 'bg-gradient-to-r from-amber-100 via-white to-amber-100' : 'bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-200'} drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]`}>
+                                    {rating.title}
                                 </h2>
-                                <div className="absolute -inset-4 bg-amber-400/20 blur-3xl opacity-20 rounded-full" />
+                                <p className="text-4xl mt-2">{rating.emoji}</p>
+                                <div className={`absolute -inset-4 ${rating.isPrestige ? 'bg-amber-100/30' : 'bg-amber-400/20'} blur-3xl opacity-20 rounded-full`} />
                             </div>
                         </motion.div>
 
@@ -720,6 +814,193 @@ export default function PlayPage({ params }) {
         );
     }
 
+    // Rapid Fire Mode - Full-screen immersive layout
+    if (session?.mode === 'rapidfire') {
+        return (
+            <div className="h-screen w-screen overflow-hidden bg-black relative selection:bg-primary/20 selection:text-primary">
+                {/* Full-screen Scene */}
+                <RapidFireScene
+                    backdropPath={session?.backdropPath}
+                    timeLeft={timeLeft}
+                    maxTime={session?.timeLimit || 15}
+                    className="absolute inset-0"
+                />
+
+                {/* Floating HUD - Three column layout */}
+                <div className="absolute top-0 left-0 right-0 z-30 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                        {/* Left: Score & Streak */}
+                        <div className="flex items-center gap-3">
+                            <div className="px-3 py-2 rounded-xl bg-black/50 backdrop-blur-md border border-white/10">
+                                <p className="text-[9px] text-white/40 uppercase tracking-widest">Score</p>
+                                <p className="text-lg font-bold text-white tabular-nums">{session?.totalScore || 0}</p>
+                            </div>
+                            <div className="px-3 py-2 rounded-xl bg-black/50 backdrop-blur-md border border-white/10">
+                                <p className="text-[9px] text-white/40 uppercase tracking-widest">Streak</p>
+                                <p className="text-lg font-bold text-white tabular-nums">{session?.streak || 0}</p>
+                            </div>
+                        </div>
+
+                        {/* Center: Timer Ring */}
+                        <div className="flex-shrink-0">
+                            <div className="relative w-16 h-16">
+                                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="45"
+                                        fill="none"
+                                        stroke="rgba(255,255,255,0.1)"
+                                        strokeWidth="6"
+                                    />
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r="45"
+                                        fill="none"
+                                        stroke={timeLeft <= 5 ? "#ef4444" : "#22c55e"}
+                                        strokeWidth="6"
+                                        strokeLinecap="round"
+                                        strokeDasharray={`${(timeLeft / (session?.timeLimit || 15)) * 283} 283`}
+                                        className="transition-all duration-300"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className={`text-xl font-bold tabular-nums ${timeLeft <= 5 ? "text-red-500" : "text-white"}`}>
+                                        {timeLeft}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Lives */}
+                        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/50 backdrop-blur-md border border-white/10">
+                            {[...Array(3)].map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    animate={{ scale: i < lives ? 1 : 0.7, opacity: i < lives ? 1 : 0.3 }}
+                                    className="text-lg"
+                                >
+                                    {i < lives ? "❤️" : "🖤"}
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+
+                {/* Correct Animation Overlay */}
+                <AnimatePresence>
+                    {showCorrectAnimation && (
+                        <motion.div
+                            key="correct-overlay"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 10 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="text-center"
+                            >
+                                <motion.div
+                                    initial={{ rotate: -10, scale: 0 }}
+                                    animate={{ rotate: 0, scale: 1 }}
+                                    transition={{ type: "spring", damping: 12 }}
+                                    className="mb-6 relative z-10 drop-shadow-2xl flex justify-center"
+                                >
+                                    {result?.gotSpeedBonus ? (
+                                        <Zap className="w-24 h-24 text-emerald-400 fill-current" />
+                                    ) : (
+                                        <Icons.Success className="w-24 h-24 text-primary mx-auto" />
+                                    )}
+                                </motion.div>
+                                <p className="text-4xl font-extrabold text-white tracking-tighter mb-4">
+                                    {result?.gotSpeedBonus ? "SPEED BONUS!" : "Correct!"}
+                                </p>
+                                <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-zinc-900 border border-white/10 text-muted-foreground text-sm font-medium">
+                                    <span className="text-white">+{result?.roundScore || 0} points</span>
+                                    {result?.gotSpeedBonus && (
+                                        <span className="flex items-center gap-1 text-emerald-400">
+                                            <Zap className="w-3 h-3 fill-current" /> 3x
+                                        </span>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Wrong Feedback */}
+                <AnimatePresence>
+                    {result && showFeedback && !result.isCorrect && !result.gameOver && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 px-6 py-3 rounded-full bg-red-900/60 border border-red-500/30 backdrop-blur-md"
+                        >
+                            <p className="text-red-400 font-bold text-lg">❌ Wrong! -1 Life</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Input at bottom */}
+                <div className="absolute bottom-0 inset-x-0 z-30 p-6 md:p-8">
+                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black via-black/80 to-transparent -z-10" />
+
+                    <motion.form
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        onSubmit={handleSubmit}
+                        className="max-w-xl mx-auto w-full flex flex-col md:flex-row gap-3 items-stretch"
+                    >
+                        <div className="flex-1">
+                            <AutocompleteInput
+                                value={guess}
+                                onChange={(e) => setGuess(e.target.value)}
+                                onSubmit={handleSubmit}
+                                placeholder="Guess the movie..."
+                                industry={industry}
+                                disabled={loading || showCorrectAnimation}
+                                shakeOnError={shakeInput}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading || !guess.trim() || showCorrectAnimation}
+                            className={`
+                                relative overflow-hidden group
+                                px-8 h-12 md:h-auto rounded-2xl font-bold text-xs tracking-widest uppercase
+                                transition-all duration-300
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                ${guess.length >= 3 && !loading
+                                    ? "bg-red-500 text-white shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-[1.02] active:scale-[0.98]"
+                                    : "bg-white/5 text-muted-foreground border border-white/5"}
+                            `}
+                        >
+                            <span className="relative z-10 flex items-center gap-2">
+                                {loading ? (
+                                    <span className="animate-pulse">Checking...</span>
+                                ) : (
+                                    <>
+                                        Guess
+                                        {guess.length >= 3 && <span className="text-sm">↵</span>}
+                                    </>
+                                )}
+                            </span>
+                        </button>
+                    </motion.form>
+                </div>
+            </div>
+        );
+    }
+
+    // Classic Mode - Original layout with sidebar
     return (
         <div className="h-screen flex flex-row overflow-hidden bg-background relative selection:bg-primary/20 selection:text-primary">
             <VerticalFilmStrip

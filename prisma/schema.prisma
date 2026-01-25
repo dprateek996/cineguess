@@ -160,3 +160,23 @@ enum Difficulty {
   MEDIUM
   HARD
 }
+
+enum LeaderboardCategory {
+  BOLLYWOOD
+  HOLLYWOOD
+  RAPIDFIRE_BOLLYWOOD
+  RAPIDFIRE_HOLLYWOOD
+}
+
+model Leaderboard {
+  id            String              @id @default(cuid())
+  username      String
+  highScore     Int
+  category      LeaderboardCategory
+  moviesGuessed Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@unique([username, category])
+  @@index([category, highScore(sort: Desc)])
+}

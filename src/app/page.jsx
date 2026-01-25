@@ -165,8 +165,8 @@ function GameLanding() {
                     />
                 </motion.div>
 
-                {/* --- Daily Challenge (Subtle Button) --- */}
-                <motion.div variants={itemVariants} className="mt-16">
+                {/* --- Daily Challenge & Leaderboard --- */}
+                <motion.div variants={itemVariants} className="mt-16 flex flex-wrap items-center justify-center gap-4">
                     <Link href="/daily" className="relative inline-block group">
                         {/* Background Glow */}
                         <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/0 blur opacity-0 transition duration-500 group-hover:opacity-60" />
@@ -179,6 +179,17 @@ function GameLanding() {
                                 <span className="ml-2 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
                                     <Icons.Play className="h-3 w-3 fill-current" />
                                 </span>
+                            </span>
+                        </Button>
+                    </Link>
+
+                    <Link href="/leaderboard" className="relative inline-block group">
+                        <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-500/10 to-amber-500/0 blur opacity-0 transition duration-500 group-hover:opacity-60" />
+
+                        <Button variant="ghost" className="relative h-12 rounded-full px-8 overflow-hidden bg-zinc-900/50 backdrop-blur-sm border border-white/5 group-hover:bg-zinc-900/80 transition-all duration-300">
+                            <span className="relative z-10 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-white/40 group-hover:text-amber-400 transition-colors">
+                                <span>🏆</span>
+                                Leaderboard
                             </span>
                         </Button>
                     </Link>
